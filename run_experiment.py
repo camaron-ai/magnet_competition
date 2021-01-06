@@ -1,0 +1,121 @@
+import pandas as pd
+import numpy as np
+from pathlib import Path
+import load_data
+from preprocessing.base import preprocessing, create_target
+import gc
+import logging
+import click
+import joblib
+import mlflow
+import default
+import os
+from metrics import compute_metrics
+from models import library as model_library
+
+logger = logging.getLogger(__name__)
+log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+logging.basicConfig(format=log_fmt,
+                    level=logging.INFO)
+
+
+@click.command()
+@click.argument('experiment_path', type=click.Path(exists=True))
+@click.option('--eval_mode', type=click.BOOL, default=True)
+@click.option('--use_sample', type=click.BOOL, default=False)
+def main(experiment_path: str, eval_mode: bool = True,
+         use_sample: bool = False):
+    experiment = os.path.basename(experiment_path)
+    logging.info(f'running {experiment}')
+    logging.info(f'eval_mode={eval_mode}, use_sample={use_sample}')
+
+    logging.info('reading config file')
+    experiment_path = Path(experiment_path)
+    config = load_data.read_config_file('./config/config.yml')
+    experiment_config = load_data.read_config_file(experiment_path / 'config.yml')
+
+    directories = config['directories']
+    data_path = Path(directories['data'])
+    prediction_path = experiment_path / 'prediction'
+    prediction_path.mkdir(exist_ok=True, parents=True)
+    model_path = experiment_path / 'models'
+    model_path.mkdir(exist_ok=True, parents=True)
+
+    # reading gt data
+    solar_wind_file = ('sample_solar_wind.csv'
+                       if use_sample else 'solar_wind.csv')
+    logging.info('reading training data')
+    dst_labels = load_data.read_csv(data_path / 'dst_labels.csv')
+    solar_wind = load_data.read_csv(data_path / solar_wind_file)
+    sunspots = load_data.read_csv(data_path / 'sunspots.csv')
+
+    logging.info('applying base preprocessing')
+    # applying features pipeline
+    data = preprocessing(solar_wind, sunspots, features=default.init_features)
+    # create target
+    target = create_target(dst_labels)
+    assert len(data) == len(target) or use_sample, \
+           f'lenght do not match {(len(data), len(target))}'
+    # merging
+    data = data.merge(target, on=['period', 'timedelta'], how='left')
+    data.dropna(subset=['t0', 't1'], inplace=True)
+    data.reset_index(drop=True, inplace=True)
+
+    # getting features
+    features = [feature for feature in data.columns
+                if feature not in default.ignore_features]
+    logging.info(f'modeling using {len(features)} features')
+    logging.info(f'{features[:30]}')
+
+    del solar_wind, sunspots, dst_labels
+    gc.collect()
+
+    logging.info('splitting dataset')
+    train_idx, valid_idx = load_data.split_train_data(data, test_frac=0.2,
+                                                      eval_mode=eval_mode)
+    train_data = data.loc[train_idx, :]
+    valid_data = data.loc[valid_idx, :]
+
+    # importing model to train
+    model_config = experiment_config['model']
+    model_instance = model_library[model_config['instance']]
+    logging.info('training horizon 0 model')
+    # making model for horizon 0
+    model_h0 = model_instance(**model_config['parameters'])
+    model_h0.fit(train_data.loc[:, features], train_data.loc[:, 't0'])
+
+    logging.info('training horizon 1 model')
+    # making model for horizon 1
+    model_h1 = model_instance(**model_config['parameters'])
+    model_h1.fit(train_data.loc[:, features], train_data.loc[:, 't1'])
+
+    logging.info('prediction h0 and h1 models')
+    train_data['yhat_t0'] = model_h0.predict(train_data.loc[:, features])
+    train_data['yhat_t1'] = model_h1.predict(train_data.loc[:, features])
+    valid_data['yhat_t0'] = model_h0.predict(valid_data.loc[:, features])
+    valid_data['yhat_t1'] = model_h1.predict(valid_data.loc[:, features])
+
+    train_error = compute_metrics(train_data, suffix='_train')
+    valid_error = compute_metrics(valid_data, suffix='_valid')
+    if eval_mode:
+        with mlflow.start_run():
+            # saving predictions
+            train_prediction = train_data.loc[:, default.keep_columns]
+            train_prediction.to_csv(prediction_path / 'train.csv', index=False)
+            valid_prediction = valid_data.loc[:, default.keep_columns]
+            valid_prediction.to_csv(prediction_path / 'valid.csv', index=False)
+            # saving to mlflow
+            # saving metrics
+            mlflow.log_metrics(train_error)
+            mlflow.log_metrics(valid_error)
+            # saving model parameters
+            mlflow.log_params(model_config['parameters'])
+            mlflow.set_tags({'use_sample': use_sample,
+                             'model_instance': model_config['instance']})
+    if not eval_mode:
+        joblib.dump(model_h0, model_path / 'model_h0.pkl')
+        joblib.dump(model_h1, model_path / 'model_h0.pkl')
+
+
+if __name__ == '__main__':
+    main()

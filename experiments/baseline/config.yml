@@ -1,0 +1,5 @@
+model:
+  instance: 'LR'
+  parameters:
+    normalize: True
+pipeline: {}

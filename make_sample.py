@@ -3,18 +3,18 @@ from pathlib import Path
 import load_data
 import logging
 import click
+from default import default_sample_frac
+
 
 logger = logging.getLogger(__name__)
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(format=log_fmt,
                     level=logging.INFO)
 
-default_frac = 0.4
-
 
 @click.command()
-@click.option('--frac', type=click.FLOAT, default=default_frac)
-def main(frac: float = default_frac):
+@click.option('--frac', type=click.FLOAT, default=default_sample_frac)
+def main(frac: float = default_sample_frac):
     logging.info(f'making sample of {frac}%')
     logging.info('reading config file')
     config = load_data.read_config_file('./config/config.yml')
