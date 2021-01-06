@@ -8,6 +8,8 @@ import logging
 import click
 from sklearn.linear_model import LinearRegression
 import joblib
+import mlflow
+
 
 logger = logging.getLogger(__name__)
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -37,25 +39,30 @@ def rmse(target, yhat):
 
 @click.command()
 @click.option('--eval_mode', type=click.BOOL, default=True)
-def main(eval_mode: bool = True):
-    logging.info(f'running baseline on eval_mode={eval_mode}')
+@click.option('--sample', type=click.BOOL, default=True)
+def main(eval_mode: bool = True, sample: bool = True):
+    logging.info('running baseline')
+    logging.info(f'eval_mode={eval_mode}, sample={sample}')
     logging.info('reading config file')
     config = load_data.read_config_file('./config/config.yml')
     directories = config['directories']
     data_path = Path(directories['data'])
 
     # reading gt data
+    solar_wind_file = 'sample_solar_wind.csv' if sample else 'solar_wind.csv'
     logging.info('reading training data')
     dst_labels = load_data.read_csv(data_path / 'dst_labels.csv')
-    solar_wind = load_data.read_csv(data_path / 'solar_wind.csv')
+    solar_wind = load_data.read_csv(data_path / solar_wind_file)
     sunspots = load_data.read_csv(data_path / 'sunspots.csv')
 
     logging.info('applying base preprocessing')
     data = preprocessing(solar_wind, sunspots, features=init_features)
     target = create_target(dst_labels)
-    assert len(data) == len(target), \
+    assert len(data) == len(target) or sample, \
            f'lenght do not match {(len(data), len(target))}'
     data = data.merge(target, on=['period', 'timedelta'], how='left')
+    data.dropna(subset=['t0', 't1'], inplace=True)
+    data.reset_index(drop=True, inplace=True)
     features = [feature for feature in data.columns
                 if feature not in ignore_features]
     logging.info(f'modeling using {len(features)} features')
@@ -91,6 +98,10 @@ def main(eval_mode: bool = True):
                            valid_data[['yhat_t0', 'yhat_t1']])
               }
     print(errors)
+    if eval_mode:
+        with mlflow.start_run():
+            mlflow.log_metrics(errors)
+            mlflow.set_tags({'sample': sample})
     if not eval_mode:
         joblib.dump(linear_h0, 'h0_baseline.pkl')
         joblib.dump(linear_h1, 'h1_baseline.pkl')

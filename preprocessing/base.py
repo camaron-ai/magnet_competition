@@ -35,7 +35,11 @@ def preprocessing(solar_wind: pd.DataFrame,
                   features: List[str] = None):
     if features is None:
         features = solar_wind.columns.drop(['timedelta', 'period', 'source'])
-    solar_wind['timedelta'] = solar_wind['timedelta'].dt.floor('H')
+
+    # adding a minute and ceiling the minutes to the next hour to not leak
+    # about the future
+    solar_wind['timedelta'] += pd.to_timedelta(1, unit='m')
+    solar_wind['timedelta'] = solar_wind['timedelta'].dt.ceil('H')
 
     hourly_solar_wind = agregate_data(solar_wind,
                                       on=['timedelta', 'period'],

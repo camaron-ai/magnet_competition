@@ -139,6 +139,7 @@ cython_debug/
 
 #folders
 /notebooks/
+/mlruns/
 #files
 *.csv
 *.pkl
