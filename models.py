@@ -1,5 +1,8 @@
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Lasso
 from lightgbm import LGBMRegressor
+from sklearn.ensemble import RandomForestRegressor
 
 library = {'LR': LinearRegression,
-           'LGBM': LGBMRegressor}
+           'LGBM': LGBMRegressor,
+           'RF': RandomForestRegressor,
+           'LASSO': Lasso}

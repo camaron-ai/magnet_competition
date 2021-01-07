@@ -26,3 +26,23 @@ def compute_metrics(data: pd.DataFrame,
             f'rmse{suffix}': rmse(data[[f'{target}0', f'{target}1']],
                                   data[[f'{yhat}_t0', f'{yhat}_t1']])
               }
+
+
+def get_raw_importances(model):
+    methods = ['feature_importances_', 'coef_']
+    for method in methods:
+        importances = getattr(model, method, None)
+        if importances is not None:
+            return importances
+    return None
+
+
+def feature_importances(model, features):
+    importances = get_raw_importances(model)
+    if importances is None:
+        return None
+    importances = np.abs(importances)
+    fi = pd.DataFrame({'feature': features,
+                       'importance': importances})
+    fi.sort_values(by='importance', ascending=False, inplace=True)
+    return fi

@@ -10,7 +10,7 @@ import joblib
 import mlflow
 import default
 import os
-from metrics import compute_metrics
+from metrics import compute_metrics, feature_importances
 from models import library as model_library
 
 logger = logging.getLogger(__name__)
@@ -98,12 +98,18 @@ def main(experiment_path: str, eval_mode: bool = True,
     train_error = compute_metrics(train_data, suffix='_train')
     valid_error = compute_metrics(valid_data, suffix='_valid')
     if eval_mode:
-        with mlflow.start_run():
+        with mlflow.start_run(run_name=experiment):
             # saving predictions
             train_prediction = train_data.loc[:, default.keep_columns]
             train_prediction.to_csv(prediction_path / 'train.csv', index=False)
             valid_prediction = valid_data.loc[:, default.keep_columns]
             valid_prediction.to_csv(prediction_path / 'valid.csv', index=False)
+            # saving feature importances if there is aviable
+            fi_h0 = feature_importances(model_h0, features)
+            fi_h1 = feature_importances(model_h1, features)
+            if (fi_h0 is not None) and (fi_h1 is not None):
+                fi_h0.to_csv(experiment_path / 'fi_h0.csv', index=False)
+                fi_h1.to_csv(experiment_path / 'fi_h1.csv', index=False)
             # saving to mlflow
             # saving metrics
             mlflow.log_metrics(train_error)
@@ -111,10 +117,11 @@ def main(experiment_path: str, eval_mode: bool = True,
             # saving model parameters
             mlflow.log_params(model_config['parameters'])
             mlflow.set_tags({'use_sample': use_sample,
-                             'model_instance': model_config['instance']})
+                             'model_instance': model_config['instance'],
+                             'experiment': experiment})
     if not eval_mode:
         joblib.dump(model_h0, model_path / 'model_h0.pkl')
-        joblib.dump(model_h1, model_path / 'model_h0.pkl')
+        joblib.dump(model_h1, model_path / 'model_h1.pkl')
 
 
 if __name__ == '__main__':
