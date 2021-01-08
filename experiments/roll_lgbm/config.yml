@@ -1,0 +1,11 @@
+model:
+  instance: 'LGBM'
+  parameters: {}
+pipeline:
+  rolling_stats:
+    attr: [mean, std]
+    windows: [48, 32, 24]
+  drop_feature_corr:
+    threshold: 0.9
+  drop_feature_target:
+    threshold: 0.05

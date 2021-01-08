@@ -12,6 +12,7 @@ import default
 import os
 from metrics import compute_metrics, feature_importances
 from models import library as model_library
+from pipelines import build_pipeline, set_common_params
 
 logger = logging.getLogger(__name__)
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -62,10 +63,8 @@ def main(experiment_path: str, eval_mode: bool = True,
     data.reset_index(drop=True, inplace=True)
 
     # getting features
-    features = [feature for feature in data.columns
-                if feature not in default.ignore_features]
-    logging.info(f'modeling using {len(features)} features')
-    logging.info(f'{features[:30]}')
+    features_before_pre = [feature for feature in data.columns
+                           if feature not in default.ignore_features]
 
     del solar_wind, sunspots, dst_labels
     gc.collect()
@@ -75,6 +74,26 @@ def main(experiment_path: str, eval_mode: bool = True,
                                                       eval_mode=eval_mode)
     train_data = data.loc[train_idx, :]
     valid_data = data.loc[valid_idx, :]
+
+    # importing pipeline
+    logging.info('building pipeline')
+    pipeline_config = experiment_config.pop('pipeline', {})
+    pipeline = build_pipeline(pipeline_config)
+    logging.info(f'{pipeline}')
+    set_common_params(pipeline, features=features_before_pre,
+                      target=['t0', 't1'])
+    # fit pipeline
+    logging.info('training pipeline')
+    pipeline.fit(train_data)
+    # transform
+    logging.info('transforming datasets')
+    train_data = pipeline.transform(train_data)
+    valid_data = pipeline.transform(valid_data)
+
+    features = [feature for feature in train_data.columns
+                if feature not in default.ignore_features]
+    logging.info(f'modeling using {len(features)} features')
+    logging.info(f'{features[:30]}')
 
     # importing model to train
     model_config = experiment_config['model']
@@ -97,13 +116,15 @@ def main(experiment_path: str, eval_mode: bool = True,
 
     train_error = compute_metrics(train_data, suffix='_train')
     valid_error = compute_metrics(valid_data, suffix='_valid')
+    logging.info(f'{train_error}')
+    logging.info(f'{valid_error}')
     if eval_mode:
         with mlflow.start_run(run_name=experiment):
             # saving predictions
             train_prediction = train_data.loc[:, default.keep_columns]
             train_prediction.to_csv(prediction_path / 'train.csv', index=False)
-            valid_prediction = valid_data.loc[:, default.keep_columns]
-            valid_prediction.to_csv(prediction_path / 'valid.csv', index=False)
+            # valid_prediction = valid_data.loc[:, default.keep_columns]
+            valid_data.to_csv(prediction_path / 'valid.csv', index=False)
             # saving feature importances if there is aviable
             fi_h0 = feature_importances(model_h0, features)
             fi_h1 = feature_importances(model_h1, features)
@@ -122,6 +143,7 @@ def main(experiment_path: str, eval_mode: bool = True,
     if not eval_mode:
         joblib.dump(model_h0, model_path / 'model_h0.pkl')
         joblib.dump(model_h1, model_path / 'model_h1.pkl')
+        joblib.dump(pipeline, model_path / 'pipeline.pkl')
 
 
 if __name__ == '__main__':

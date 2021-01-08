@@ -46,3 +46,7 @@ def feature_importances(model, features):
                        'importance': importances})
     fi.sort_values(by='importance', ascending=False, inplace=True)
     return fi
+
+
+def make_error_plot(prediction: pd.DataFrame):
+    pass
