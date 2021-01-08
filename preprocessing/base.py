@@ -1,8 +1,5 @@
 from typing import Tuple, List
 import pandas as pd
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
 from pandas.api.types import is_numeric_dtype
 
 
