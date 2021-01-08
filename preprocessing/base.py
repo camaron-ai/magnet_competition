@@ -34,7 +34,6 @@ def merge_sunspots(data: pd.DataFrame,
                    sunspots: pd.DataFrame) -> pd.DataFrame:
     data['day'] = data['timedelta'].dt.days
     sunspots['day'] = sunspots['timedelta'].dt.days
-
     data = data.merge(sunspots.drop('timedelta', axis=1),
                       on=['period', 'day'],
                       how='left')
@@ -68,40 +67,3 @@ def preprocessing(solar_wind: pd.DataFrame,
         data.fillna(map_nan_features, inplace=True)
 
     return data
-
-
-
-# class ImputeFeatures(BaseEstimator, TransformerMixin):
-#     def fit(self, X: pd.DataFrame, y=None):
-#         return self
-
-#     def transform(self, X: pd.DataFrame):
-#         # fill the sunspots nan with the month value
-#         X['smoothed_ssn'] = X['smoothed_ssn'].fillna(method='ffill')
-#         # interpolate the nan values for the solar wind features
-#         X = X.interpolate()
-#         return X
-
-
-# class AgregateData(BaseEstimator, TransformerMixin):
-#     def __init__(self, on: List[str],
-#                  features: List[str],
-#                  agg_attr: Tuple[str] = ('mean', 'std')):
-#         self.on = on
-#         self.features = features
-#         self.agg_attr = agg_attr
-
-#     def fit(self, X: pd.DataFrame, y=None):
-#         return self
-
-#     def transform(self, X: pd.DataFrame):
-#         aggr_data = X.groupby(self.on)[self.features].agg(self.agg_attr)
-#         aggr_data.columns = ['_'.join(column) for column in aggr_data.columns]
-#         return aggr_data
-
-
-# def join_dataset(solar_wind: pd.DataFrame,
-#                  sunspots: pd.DataFrame,
-#                  features: List[str]):
-#     solar_wind['timedelta'] = solar_wind['timedelta'].dt.floor('H')
-    
