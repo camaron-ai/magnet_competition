@@ -64,10 +64,6 @@ def main(experiment_path: str, eval_mode: bool = True,
     data.dropna(subset=['t0', 't1'], inplace=True)
     data.reset_index(drop=True, inplace=True)
 
-    # getting features
-    # features_before_pre = [feature for feature in data.columns
-                        #    if feature not in default.ignore_features]
-
     del solar_wind, sunspots, dst_labels
     gc.collect()
 
