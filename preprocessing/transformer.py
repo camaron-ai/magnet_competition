@@ -4,12 +4,20 @@ from itertools import product
 from pandas.api.types import is_numeric_dtype
 import pandas as pd
 import numpy as np
+import re
 
 
 def get_numeric_features(data: pd.DataFrame) -> List[str]:
     return [feature
             for feature, values in data.items()
             if is_numeric_dtype(values)]
+
+
+def filter_by_pattern(features: List[str], patterns: List[str]):
+    return [feature
+            for feature in features
+            if any(re.search(pattern, feature) is not None
+                   for pattern in patterns)]
 
 
 class NoOp(BaseEstimator, TransformerMixin):
@@ -20,23 +28,24 @@ class NoOp(BaseEstimator, TransformerMixin):
         return X
 
 
-class Lagger(BaseEstimator, TransformerMixin):
-    def __init__(self, lags: List[int], features: List[str] = None,
+class FeatureFilter(BaseEstimator, TransformerMixin):
+    def fit(self, X: pd.DataFrame, y=None):
+        self.features = filter_by_pattern(X.columns, self.patterns)
+        return self
+
+
+class Lagger(FeatureFilter):
+    def __init__(self, lags: List[int], patterns: List[str] = None,
                  time_feature: str = 'timedelta',
                  on: List[str] = ['period'], dropna: bool = False,
                  unit: str = 'H'):
         self.on = on
-        self.features = features
+        self.patterns = patterns
         self.time_feature = time_feature
         self.lags = lags
         self.dropna = dropna
         self.unit = unit
         self.on.append(self.time_feature)
-
-    def fit(self, X: pd.DataFrame, y=None):
-        if self.features is None:
-            self.features = get_numeric_features(X)
-        return self
 
     def transform(self, X: pd.DataFrame):
         X_delta = X.loc[:, self.on + self.features].copy(deep=True)
@@ -52,20 +61,15 @@ class Lagger(BaseEstimator, TransformerMixin):
         return X
 
 
-class RollingStats(BaseEstimator, TransformerMixin):
-    def __init__(self, windows: List[int], features: List[str] = None,
+class RollingStats(FeatureFilter):
+    def __init__(self, windows: List[int], patterns: List[str] = None,
                  attr: List[str] = ['mean'],
                  on: List[str] = ['period'], dropna: bool = False):
         self.on = on
         self.attr = attr
-        self.features = features
+        self.patterns = patterns
         self.windows = windows
         self.dropna = dropna
-
-    def fit(self, X: pd.DataFrame, y=None):
-        if self.features is None:
-            self.features = get_numeric_features(X)
-        return self
 
     def rolling_series(self, window: int,
                        attr: str = 'mean'):
@@ -90,12 +94,13 @@ class RollingStats(BaseEstimator, TransformerMixin):
 
 class DropFeatureByCorr(BaseEstimator, TransformerMixin):
     def __init__(self, threshold: float = 0.9,
-                 target: List[str] = ['t0', 't1']):
-        self.target = target
+                 patterns: List[str] = ['t0', 't1']):
+        self.patterns = patterns
         self.threshold = threshold
 
     def fit(self, X: pd.DataFrame, y=None):
-        features = X.columns.drop(self.target).to_list()
+        target = filter_by_pattern(X.columns, self.patterns)
+        features = X.columns.drop(target).to_list()
         corr_matrix = X.loc[:, features].corr().abs()
         upper_triu_index = np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool)
         upper_triu = corr_matrix.where(upper_triu_index)
@@ -110,14 +115,15 @@ class DropFeatureByCorr(BaseEstimator, TransformerMixin):
 
 class DropFeaturesByCorrTarget(DropFeatureByCorr):
     def __init__(self, threshold: float = 0.05,
-                 target: List[str] = ['t0', 't1']):
-        self.target = target
+                 patterns: List[str] = ['t0', 't1']):
+        self.patterns = patterns
         self.threshold = threshold
 
     def fit(self, X: pd.DataFrame, y=None):
+        target = filter_by_pattern(X.columns, self.patterns)
         corr_matrix = X.corr().abs()
-        features = corr_matrix.columns.drop(self.target)
-        corr_matrix = corr_matrix.loc[features, self.target]
+        features = corr_matrix.columns.drop(target)
+        corr_matrix = corr_matrix.loc[features, target]
         to_drop_index = (corr_matrix < self.threshold)
         if len(to_drop_index.shape) > 1:
             to_drop_index = to_drop_index.any(axis=1)

@@ -1,13 +1,14 @@
 from typing import Tuple, List
 import pandas as pd
+import numpy as np
 from pandas.api.types import is_numeric_dtype
 
 
-def impute_features(X: pd.DataFrame):
-    # fill the sunspots nan with the month value
-    X['smoothed_ssn'] = X['smoothed_ssn'].fillna(method='ffill')
-    # interpolate the nan values for the solar wind features
-    X = X.interpolate()
+def fillna_features(X: pd.DataFrame):
+    # fillnan values with the closest non-nan value
+    for feature, values in X.items():
+        if is_numeric_dtype(values) and values.isna().any():
+            X[feature] = values.fillna(method='ffill').fillna(method='backfill')
     return X
 
 
@@ -49,18 +50,10 @@ def preprocessing(solar_wind: pd.DataFrame,
     # about the future
     solar_wind['timedelta'] += pd.to_timedelta(1, unit='m')
     solar_wind['timedelta'] = solar_wind['timedelta'].dt.ceil('H')
-
     hourly_solar_wind = agregate_data(solar_wind,
                                       on=['period', 'timedelta'],
                                       features=features)
 
     data = merge_sunspots(hourly_solar_wind, sunspots)
-    data = impute_features(data)
-    if data.isna().sum().sum() > 0:
-        map_nan_features = {feature: 0
-                            for feature, values in data.items()
-                            if (is_numeric_dtype(values) and
-                                values.isna().any())}
-        data.fillna(map_nan_features, inplace=True)
-
+    data = fillna_features(data)
     return data

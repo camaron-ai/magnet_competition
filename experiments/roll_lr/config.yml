@@ -5,6 +5,7 @@ pipeline:
   rolling_stats:
     attr: [mean, std]
     windows: [48, 32, 24]
+    patterns: ['_mean$', '_std$']
   drop_feature_corr:
     threshold: 0.9
   drop_feature_target:

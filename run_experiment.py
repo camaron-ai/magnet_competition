@@ -24,8 +24,10 @@ logging.basicConfig(format=log_fmt,
 @click.argument('experiment_path', type=click.Path(exists=True))
 @click.option('--eval_mode', type=click.BOOL, default=True)
 @click.option('--use_sample', type=click.BOOL, default=False)
+@click.option('-m', '--message', type=str, default=None)
 def main(experiment_path: str, eval_mode: bool = True,
-         use_sample: bool = False):
+         use_sample: bool = False,
+         message: str = None):
     experiment = os.path.basename(experiment_path)
     logging.info(f'running {experiment}')
     logging.info(f'eval_mode={eval_mode}, use_sample={use_sample}')
@@ -63,8 +65,8 @@ def main(experiment_path: str, eval_mode: bool = True,
     data.reset_index(drop=True, inplace=True)
 
     # getting features
-    features_before_pre = [feature for feature in data.columns
-                           if feature not in default.ignore_features]
+    # features_before_pre = [feature for feature in data.columns
+                        #    if feature not in default.ignore_features]
 
     del solar_wind, sunspots, dst_labels
     gc.collect()
@@ -80,8 +82,7 @@ def main(experiment_path: str, eval_mode: bool = True,
     pipeline_config = experiment_config.pop('pipeline', {})
     pipeline = build_pipeline(pipeline_config)
     logging.info(f'{pipeline}')
-    set_common_params(pipeline, features=features_before_pre,
-                      target=['t0', 't1'])
+
     # fit pipeline
     logging.info('training pipeline')
     pipeline.fit(train_data)
@@ -137,9 +138,12 @@ def main(experiment_path: str, eval_mode: bool = True,
             mlflow.log_metrics(valid_error)
             # saving model parameters
             mlflow.log_params(model_config['parameters'])
-            mlflow.set_tags({'use_sample': use_sample,
-                             'model_instance': model_config['instance'],
-                             'experiment': experiment})
+            tags = {'use_sample': use_sample,
+                    'model_instance': model_config['instance'],
+                    'experiment': experiment}
+            if message is not None:
+                tags['message'] = message
+            mlflow.set_tags(tags)
     if not eval_mode:
         joblib.dump(model_h0, model_path / 'model_h0.pkl')
         joblib.dump(model_h1, model_path / 'model_h1.pkl')
