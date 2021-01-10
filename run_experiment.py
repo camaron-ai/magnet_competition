@@ -12,7 +12,7 @@ import default
 import os
 from metrics import compute_metrics, feature_importances
 from models import library as model_library
-from pipelines import build_pipeline, set_common_params
+from pipelines import build_pipeline
 
 logger = logging.getLogger(__name__)
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

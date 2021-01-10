@@ -58,6 +58,11 @@ class Lagger(FeatureFilter):
         if self.dropna:
             X.dropna(inplace=True)
             X.reset_index(drop=True, inplace=True)
+
+        X.fillna({feature: -999
+                  for feature, values in X.items()
+                  if (is_numeric_dtype(values) and
+                      values.isna().any())}, inplace=True)
         return X
 
 
@@ -89,6 +94,23 @@ class RollingStats(FeatureFilter):
         if self.dropna:
             X.dropna(inplace=True)
             X.reset_index(drop=True, inplace=True)
+        return X
+
+
+
+class DifferenceFeatures(FeatureFilter):
+    def __init__(self, patterns: List[str] = None,
+                 on: List[str] = ['period']):
+        self.patterns = patterns
+        self.on = on
+
+    def transform(self, X: pd.DataFrame):
+        difference = X.groupby(self.on)[self.features].diff()
+        difference.fillna(0, inplace=True)
+        difference.rename(columns={feature: f'{feature}_diff'
+                                   for feature in self.features},
+                          inplace=True)
+        X = pd.concat([X, difference], axis=1)
         return X
 
 

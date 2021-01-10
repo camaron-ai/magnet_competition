@@ -1,0 +1,16 @@
+model:
+  instance: 'LR'
+  parameters: {}
+pipeline:
+  lagger:
+    patterns: ['_mean$']
+    lags: [1, 3, 7
+    ]
+  rolling_stats:
+    attr: [mean, std]
+    windows: [3, 7, 32, 48]
+    patterns: ['_mean$', '_std$']
+  drop_feature_corr:
+    threshold: 0.98
+  # drop_feature_target:
+    # threshold: 0.05
