@@ -1,0 +1,7 @@
+model:
+  instance: 'LGBM'
+  parameters: {}
+pipeline:
+  lagger:
+    lags: [1]
+    patterns: [_mean$, _std$, _min$, _max$]

@@ -76,6 +76,7 @@ def predict_dst(
     sunspots.loc[:, 'period'] = 'test'
 
     test_data = preprocessing(solar_wind_7d, sunspots,
+                              satellite_positions_7d,
                               features=default.init_features)
     # logging.info(f'modeling using {len(features)} features')
     # logging.info(f'{features[:30]}')

@@ -55,7 +55,7 @@ def main(experiment_path: str, eval_mode: bool = True,
 
     logging.info('applying base preprocessing')
     # applying features pipeline
-    data = preprocessing(solar_wind, sunspots, None,
+    data = preprocessing(solar_wind, sunspots, stl_pos,
                          features=default.init_features)
     # create target
     target = create_target(dst_labels)

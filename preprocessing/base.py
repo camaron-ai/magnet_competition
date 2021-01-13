@@ -15,7 +15,7 @@ def fillna_features(X: pd.DataFrame):
 
 def agregate_data(X: pd.DataFrame, on: List[str],
                   features: List[str],
-                  agg_attr: Tuple[str] = ('mean', 'std')):
+                  agg_attr: Tuple[str] = ('mean', 'std', 'min', 'max')):
     aggr_data = X.groupby(on)[features].agg(agg_attr)
     aggr_data.columns = ['_'.join(column) for column in aggr_data.columns]
     aggr_data.reset_index(inplace=True)
@@ -42,14 +42,13 @@ def merge_daily(data: pd.DataFrame,
 
 
 def stl_preprocessing(data: pd.DataFrame):
-    to_drop = []
+    to_drop = ['gse_x_dscovr', 'gse_y_dscovr', 'gse_z_dscovr']
     data.drop(to_drop, inplace=True, axis=1)
-    working_features = []
-
+    working_features = ['gse_x_ace', 'gse_y_ace', 'gse_z_ace']
     period_data = data.groupby('period')
     for feature in working_features:
         direction = period_data[feature].diff().fillna(0)
-        data[f'{feature}_direction'] = direction
+        data[f'{feature}_direction'] = np.clip(direction, -1, 1)
     return data
 
 
