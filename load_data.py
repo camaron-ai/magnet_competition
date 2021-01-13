@@ -18,6 +18,12 @@ def read_csv(path_to_csv: path_type, **kargs) -> pd.DataFrame:
                        date_parser=pd.to_timedelta, **kargs)
 
 
+def read_feather(path_to_feather: path_type, **kargs) -> pd.DataFrame:
+    data = pd.read_feather(path_to_feather, **kargs)
+    data['timedelta'] = pd.to_timedelta(data['timedelta'])
+    return data
+
+
 def split_train_data(data: pd.DataFrame, test_frac: float = 0.2,
                      eval_mode: bool = True):
     test_size = int(len(data) * test_frac)

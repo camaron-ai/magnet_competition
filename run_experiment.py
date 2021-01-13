@@ -45,16 +45,18 @@ def main(experiment_path: str, eval_mode: bool = True,
     model_path.mkdir(exist_ok=True, parents=True)
 
     # reading gt data
-    solar_wind_file = ('sample_solar_wind.csv'
-                       if use_sample else 'solar_wind.csv')
+    solar_wind_file = ('sample_solar_wind.feather'
+                       if use_sample else 'solar_wind.feather')
     logging.info('reading training data')
     dst_labels = load_data.read_csv(data_path / 'dst_labels.csv')
-    solar_wind = load_data.read_csv(data_path / solar_wind_file)
+    solar_wind = load_data.read_feather(data_path / solar_wind_file)
     sunspots = load_data.read_csv(data_path / 'sunspots.csv')
+    stl_pos = load_data.read_csv(data_path / 'satellite_positions.csv')
 
     logging.info('applying base preprocessing')
     # applying features pipeline
-    data = preprocessing(solar_wind, sunspots, features=default.init_features)
+    data = preprocessing(solar_wind, sunspots, None,
+                         features=default.init_features)
     # create target
     target = create_target(dst_labels)
     assert len(data) == len(target) or use_sample, \
