@@ -152,3 +152,10 @@ class DropFeaturesByCorrTarget(DropFeatureByCorr):
         self.to_drop = features[to_drop_index]
         return self
 
+
+class DropFeatures(FeatureFilter):
+    def __init__(self, patterns: List[str]):
+        self.patterns = patterns
+
+    def transform(self, X: pd.DataFrame):
+        return X.drop(self.features, axis=1)

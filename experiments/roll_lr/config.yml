@@ -1,5 +1,5 @@
 model:
-  instance: 'LGBM'
+  instance: 'LR'
   parameters: {}
 pipeline:
   rolling_stats:
