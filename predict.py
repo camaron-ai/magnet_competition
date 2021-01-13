@@ -9,6 +9,7 @@ import joblib
 import default
 from models import library as model_library
 from collections import defaultdict
+import gc
 
 
 logger = logging.getLogger(__name__)
@@ -26,13 +27,17 @@ def load_models():
     for experiment in os.listdir(path):
         # for each experiment
         experiment_path = path.joinpath(experiment, 'models')
+        # if the models is not trained, skip it
+        if not os.path.exists(experiment_path):
+            continue
         # load everything need it
         model_h0 = joblib.load(experiment_path / 'model_h0.pkl')
         model_h1 = joblib.load(experiment_path / 'model_h1.pkl')
+        pipeline = joblib.load(experiment_path / 'pipeline.pkl')
         # save it into the experiment's dict
         repo[experiment]['model_h0'] = model_h0
         repo[experiment]['model_h1'] = model_h1
-
+        repo[experiment]['pipeline'] = pipeline
     return repo
 
 
@@ -72,8 +77,6 @@ def predict_dst(
 
     test_data = preprocessing(solar_wind_7d, sunspots,
                               features=default.init_features)
-    features = [feature for feature in test_data.columns
-                if feature not in default.ignore_features]
     # logging.info(f'modeling using {len(features)} features')
     # logging.info(f'{features[:30]}')
 
@@ -86,9 +89,17 @@ def predict_dst(
         # import the models
         model_h0 = experiment_repo['model_h0']
         model_h1 = experiment_repo['model_h1']
+        pipeline = experiment_repo['pipeline']
+
+        test_data_e = test_data.copy()
+        test_data_e = pipeline.transform(test_data_e)
+        features = [feature for feature in test_data_e.columns
+                    if feature not in default.ignore_features]
         # predict and sum it to the total prediction
-        prediction_at_t0 += model_h0.predict(test_data.loc[:, features])[-1]
-        prediction_at_t1 += model_h1.predict(test_data.loc[:, features])[-1]
+        prediction_at_t0 += model_h0.predict(test_data_e.loc[:, features])[-1]
+        prediction_at_t1 += model_h1.predict(test_data_e.loc[:, features])[-1]
+        del features, test_data_e
+        gc.collect()
     # divide by the number of experiments
     prediction_at_t0 /= len(repo)
     prediction_at_t1 /= len(repo)
