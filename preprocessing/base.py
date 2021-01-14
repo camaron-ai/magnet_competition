@@ -33,6 +33,8 @@ def merge_daily(data: pd.DataFrame,
                 other: pd.DataFrame) -> pd.DataFrame:
     data['day'] = data['timedelta'].dt.days
     other['day'] = other['timedelta'].dt.days
+    other.drop_duplicates(subset=['period', 'day'],
+                          inplace=True)
     data = data.merge(other.drop('timedelta', axis=1),
                       on=['period', 'day'],
                       how='left')
