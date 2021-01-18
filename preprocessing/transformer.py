@@ -39,13 +39,12 @@ class Lagger(FeatureFilter):
                  time_feature: str = 'timedelta',
                  on: List[str] = ['period'], dropna: bool = False,
                  unit: str = 'H'):
-        self.on = on
         self.patterns = patterns
         self.time_feature = time_feature
         self.lags = lags
         self.dropna = dropna
         self.unit = unit
-        self.on.append(self.time_feature)
+        self.on = on + [self.time_feature]
 
     def transform(self, X: pd.DataFrame):
         X_delta = X.loc[:, self.on + self.features].copy(deep=True)
