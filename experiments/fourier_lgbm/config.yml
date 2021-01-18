@@ -1,0 +1,9 @@
+model:
+  instance: 'LGBM'
+  parameters: {}
+pipeline:
+  fourier:
+    lags: 32
+    top: 5
+    patterns: ['bx_gse_mean', 'by_gse_mean', 'bz_gse_mean',
+              'theta_gsm_mean', 'speed_mean']

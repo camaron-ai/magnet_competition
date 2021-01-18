@@ -75,6 +75,8 @@ def main(experiment_path: str, eval_mode: bool = True,
     train_data = data.loc[train_idx, :]
     valid_data = data.loc[valid_idx, :]
 
+    train_data.reset_index(drop=True, inplace=True)
+    valid_data.reset_index(drop=True, inplace=True)
     # importing pipeline
     logging.info('building pipeline')
     pipeline_config = experiment_config.pop('pipeline', {})

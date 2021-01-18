@@ -99,9 +99,9 @@ def predict_dst(
         model_h1 = experiment_repo['model_h1']
         pipeline = experiment_repo['pipeline']
 
-        test_data_e = test_data.copy()
+        # test_data_e = test_data.copy()
         print('applying preprocessing pipeline')
-        test_data_e = pipeline.transform(test_data_e)
+        test_data_e = pipeline.transform(test_data)
         features = [feature for feature in test_data_e.columns
                     if feature not in default.ignore_features]
         print('predicting..')
@@ -124,27 +124,26 @@ def predict_dst(
     return prediction_at_t0, prediction_at_t1
 
 
-# if __name__ == '__main__':
-#     import load_data
-#     import time
-#     data_path = Path('training_data/')
-#     dst_labels = load_data.read_csv(data_path / 'dst_labels.csv')
-#     solar_wind = load_data.read_feather(data_path / 'solar_wind.feather')
-#     sunspots = load_data.read_csv(data_path / 'sunspots.csv')
-#     stl_pos = load_data.read_csv(data_path / 'satellite_positions.csv')
+if __name__ == '__main__':
+    import load_data
+    import time
+    data_path = Path('training_data/')
+    dst_labels = load_data.read_csv(data_path / 'dst_labels.csv')
+    solar_wind = load_data.read_feather(data_path / 'solar_wind.feather')
+    sunspots = load_data.read_csv(data_path / 'sunspots.csv')
+    stl_pos = load_data.read_csv(data_path / 'satellite_positions.csv')
 
-#     duration_7 = pd.to_timedelta(7, unit='d')
+    duration_7 = pd.to_timedelta(7, unit='d')
 
-#     solar_wind = solar_wind[solar_wind['timedelta'] < duration_7]
-#     sunspots = sunspots[sunspots['timedelta'] < duration_7]
-#     stl_pos = stl_pos[stl_pos['timedelta'] < duration_7]
-#     latest_sunspot_number = sunspots['smoothed_ssn'].values[-1]
+    solar_wind = solar_wind[solar_wind['timedelta'] < duration_7]
+    sunspots = sunspots[sunspots['timedelta'] < duration_7]
+    stl_pos = stl_pos[stl_pos['timedelta'] < duration_7]
+    latest_sunspot_number = sunspots['smoothed_ssn'].values[-1]
 
-#     solar_wind.set_index(['timedelta'], inplace=True)
-#     stl_pos.set_index(['timedelta'], inplace=True)
+    solar_wind.set_index(['timedelta'], inplace=True)
+    stl_pos.set_index(['timedelta'], inplace=True)
 
-#     start = time.time()
-#     t0, t1 = predict_dst(solar_wind, stl_pos, latest_sunspot_number)
-#     end = time.time()
-
-#     print(t0, t1, end-start)
+    start = time.time()
+    t0, t1 = predict_dst(solar_wind, stl_pos, latest_sunspot_number)
+    end = time.time()
+    print(t0, t1, end-start)

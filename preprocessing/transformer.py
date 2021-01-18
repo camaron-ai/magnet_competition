@@ -159,3 +159,67 @@ class DropFeatures(FeatureFilter):
 
     def transform(self, X: pd.DataFrame):
         return X.drop(self.features, axis=1)
+
+
+def lag_values_n_times(values, lags):
+    lag_values = [np.roll(values, lag)
+                  for lag in reversed(range(1, lags+1))]
+    return np.stack(lag_values + [values], axis=1)
+
+
+class Fourier(FeatureFilter):
+    def __init__(self, lags: int, top: int = None,
+                 patterns: List[str] = None):
+        self.lags = lags
+        self.top = top
+        self.patterns = patterns
+        self.top_freq = {}
+
+    def fit(self, X: pd.DataFrame, y=None):
+        super().fit(X=X, y=y)
+        if self.top is None:
+            return self
+
+        for feature in self.features:
+            series = X.loc[:, feature].to_numpy()
+            rfft = self.compute_rfft(series)
+            psd = np.real(rfft * np.conj(rfft))
+            freq_importances = psd.mean(axis=0)
+            top_freq = np.argsort(freq_importances)[::-1][:self.top]
+            self.top_freq[feature] = top_freq
+        return self
+
+    def _gen_columns(self, suffix: str, n: int):
+        return [f'{suffix}_fft_coef_{c}' for c in range(n)]
+
+    def get_columns(self, suffix, n):
+        return (self._gen_columns(f'{suffix}_real', n) +
+                self._gen_columns(f'{suffix}_imag', n))
+
+    def transform(self, X: pd.DataFrame):
+        output = [X]
+        for feature in self.features:
+            series = X.loc[:, feature].to_numpy()
+            rfft = self.compute_rfft(series)
+            abs_fft = np.abs(rfft)
+            if self.top is not None:
+                rfft = rfft[:, self.top_freq[feature]]
+            real_fft = np.real(rfft)
+            imag_fft = np.imag(rfft)
+            columns = self.get_columns(feature, rfft.shape[1])
+            fft_data = np.concatenate((real_fft, imag_fft), axis=1)
+            fft_df = pd.DataFrame(fft_data,
+                                  columns=columns,
+                                  index=X.index)
+            fft_df[f'{feature}_rfft_mean'] = abs_fft.mean(axis=1)
+            fft_df[f'{feature}_rfft_std'] = abs_fft.std(axis=1)
+            output.append(fft_df)
+            del fft_data
+        return pd.concat(output, axis=1)
+
+    def compute_rfft(self, series):
+        lag_series = lag_values_n_times(series, self.lags)
+        rfft = np.fft.rfft(lag_series, axis=1)
+        del lag_series
+        return rfft
+

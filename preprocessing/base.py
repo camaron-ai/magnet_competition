@@ -15,7 +15,7 @@ def fillna_features(X: pd.DataFrame):
 
 def agregate_data(X: pd.DataFrame, on: List[str],
                   features: List[str],
-                  agg_attr: Tuple[str] = ('mean', 'std', 'min', 'max')):
+                  agg_attr: Tuple[str] = ('mean', 'std')):
     aggr_data = X.groupby(on)[features].agg(agg_attr)
     aggr_data.columns = ['_'.join(column) for column in aggr_data.columns]
     aggr_data.reset_index(inplace=True)
