@@ -3,9 +3,9 @@ from preprocessing.transformer import DropFeatureByCorr
 from preprocessing.transformer import DropFeaturesByCorrTarget
 from preprocessing.transformer import Lagger
 from preprocessing.transformer import RollingStats
-from preprocessing.transformer import NoOp
+from preprocessing.transformer import NoOp, FeatureFilter
 from preprocessing.transformer import DifferenceFeatures
-from preprocessing.transformer import Fourier
+from preprocessing.transformer import Fourier, CustomPCA
 from sklearn.pipeline import Pipeline
 
 
@@ -14,7 +14,9 @@ library = {'drop_feature_corr': DropFeatureByCorr,
            'lagger': Lagger,
            'rolling_stats': RollingStats,
            'difference': DifferenceFeatures,
-           'fourier': Fourier}
+           'fourier': Fourier,
+           'pca': CustomPCA,
+           'feature_filter': FeatureFilter}
 
 
 def build_pipeline(pipeline_config: Dict[str, Dict[str, Any]]):

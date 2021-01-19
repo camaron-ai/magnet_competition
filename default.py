@@ -1,4 +1,4 @@
-init_features = ['bx_gse', 'by_gse', 'bz_gse', 'theta_gsm', 'bt',
+init_features = ['bx_gsm', 'by_gsm', 'bz_gsm', 'theta_gsm', 'bt',
                  'density', 'speed', 'temperature']
 ignore_features = ['timedelta', 'period', 't0', 't1']
 

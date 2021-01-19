@@ -1,13 +1,12 @@
 model:
   instance: 'LGBM'
-  parameters:
-    n_estimators: 500
-    colsample_bytree: 0.8
-    subsample: 0.5
+  parameters: {}
 pipeline:
+  difference:
+    patterns: [mean]
   rolling_stats:
     attr: [mean, std]
     windows: [48, 7]
-    patterns: ['_mean$', '_std$']
+    patterns: ['_mean$', '_std$', _diff$]
   drop_feature_corr:
     threshold: 0.98

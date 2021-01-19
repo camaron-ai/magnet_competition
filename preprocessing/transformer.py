@@ -5,6 +5,9 @@ from pandas.api.types import is_numeric_dtype
 import pandas as pd
 import numpy as np
 import re
+from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 def get_numeric_features(data: pd.DataFrame) -> List[str]:
@@ -32,6 +35,9 @@ class FeatureFilter(BaseEstimator, TransformerMixin):
     def fit(self, X: pd.DataFrame, y=None):
         self.features = filter_by_pattern(X.columns, self.patterns)
         return self
+
+    def transform(self, X: pd.DataFrame):
+        return X[:, self.features]
 
 
 class Lagger(FeatureFilter):
@@ -210,8 +216,8 @@ class Fourier(FeatureFilter):
             fft_df = pd.DataFrame(fft_data,
                                   columns=columns,
                                   index=X.index)
-            fft_df[f'{feature}_rfft_mean'] = abs_fft.mean(axis=1)
-            fft_df[f'{feature}_rfft_std'] = abs_fft.std(axis=1)
+            fft_df[f'{feature}_mean_rfft'] = abs_fft.mean(axis=1)
+            fft_df[f'{feature}_std_rfft'] = abs_fft.std(axis=1)
             output.append(fft_df)
             del fft_data
         return pd.concat(output, axis=1)
@@ -222,3 +228,34 @@ class Fourier(FeatureFilter):
         del lag_series
         return rfft
 
+
+class CustomPCA(FeatureFilter):
+    def __init__(self, n_components=None, copy=True,
+                 whiten=False, svd_solver='auto', tol=0.0,
+                 iterated_power='auto', random_state=None,
+                 patterns: List[str] = None):
+        self.n_components = n_components
+        self.patterns = patterns
+        self.scaler = StandardScaler()
+        pca = PCA(n_components=n_components, copy=copy,
+                  whiten=whiten, svd_solver=svd_solver, tol=tol,
+                  iterated_power=iterated_power,
+                  random_state=random_state)
+        self.pca = Pipeline(steps=[('scaled', StandardScaler()),
+                                   ('pca', pca)])
+
+    def fit(self, X: pd.DataFrame, y=None):
+        super().fit(X=X, y=y)
+        self.pca = self.pca.fit(X.loc[:, self.features])
+        return self
+
+    def get_features_names(self, total_components):
+        return [f'PCA_C{C+1}/{total_components}'
+                for C in range(total_components)]
+
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        transformed_data = self.pca.transform(X.loc[:, self.features])
+        columns = self.get_features_names(transformed_data.shape[1])
+        pca_data = pd.DataFrame(transformed_data, columns=columns)
+        del transformed_data
+        return pd.concat([X, pca_data], axis=1)

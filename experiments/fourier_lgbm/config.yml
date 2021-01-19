@@ -5,5 +5,5 @@ pipeline:
   fourier:
     lags: 32
     top: 5
-    patterns: ['bx_gse_mean', 'by_gse_mean', 'bz_gse_mean',
+    patterns: ['bx_gsm_mean', 'by_gsm_mean', 'bz_gsm_mean',
               'theta_gsm_mean', 'speed_mean']

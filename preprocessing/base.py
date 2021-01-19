@@ -54,6 +54,20 @@ def stl_preprocessing(data: pd.DataFrame):
     return data
 
 
+def calculate_magnitud(vectors):
+    return np.sqrt(np.square(vectors).sum(axis=1))
+
+
+def solar_wind_preprocessing(solar_wind: pd.DataFrame,
+                             features: List[str]):
+    solar_wind['timedelta'] += pd.to_timedelta(1, unit='m')
+    solar_wind['timedelta'] = solar_wind['timedelta'].dt.ceil('H')
+    solar_wind['temperature'] = np.log(solar_wind['temperature'] + 1)
+    # solar_wind['byz'] = calculate_magnitud(solar_wind[['by_gsm', 'bz_gsm']])
+    # features.append('byz')
+    return solar_wind, features
+
+
 def preprocessing(solar_wind: pd.DataFrame,
                   sunspots: pd.DataFrame,
                   stl_pos: pd.DataFrame = None,
@@ -63,8 +77,7 @@ def preprocessing(solar_wind: pd.DataFrame,
 
     # adding a minute and ceiling the minutes to the next hour to not leak
     # about the future
-    solar_wind['timedelta'] += pd.to_timedelta(1, unit='m')
-    solar_wind['timedelta'] = solar_wind['timedelta'].dt.ceil('H')
+    solar_wind, features = solar_wind_preprocessing(solar_wind, features)
     hourly_solar_wind = agregate_data(solar_wind,
                                       on=['period', 'timedelta'],
                                       features=features)

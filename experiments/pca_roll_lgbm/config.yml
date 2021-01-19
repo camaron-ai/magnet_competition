@@ -1,13 +1,13 @@
 model:
   instance: 'LGBM'
-  parameters:
-    n_estimators: 500
-    colsample_bytree: 0.8
-    subsample: 0.5
+  parameters: {}
 pipeline:
+  pca:
+    n_components: 0.85
+    patterns: ['_mean$']
   rolling_stats:
     attr: [mean, std]
     windows: [48, 7]
-    patterns: ['_mean$', '_std$']
+    patterns: [PCA, '_mean$', '_std$']
   drop_feature_corr:
     threshold: 0.98
