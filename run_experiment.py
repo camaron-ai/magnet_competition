@@ -42,7 +42,7 @@ def main(experiment_path: str, eval_mode: bool = True,
     prediction_path = experiment_path / 'prediction'
     prediction_path.mkdir(exist_ok=True, parents=True)
     model_path = experiment_path / 'models'
-    model_path.mkdir(exist_ok=True, parents=True)
+
 
     # reading gt data
     solar_wind_file = ('sample_solar_wind.feather'
@@ -145,6 +145,8 @@ def main(experiment_path: str, eval_mode: bool = True,
                 tags['message'] = message
             mlflow.set_tags(tags)
     if not eval_mode:
+        # creating model path
+        model_path.mkdir(exist_ok=True, parents=True)
         joblib.dump(model_h0, model_path / 'model_h0.pkl')
         joblib.dump(model_h1, model_path / 'model_h1.pkl')
         joblib.dump(pipeline, model_path / 'pipeline.pkl')
