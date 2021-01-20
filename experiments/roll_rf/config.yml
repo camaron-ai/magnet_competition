@@ -1,13 +1,2 @@
-model:
-  instance: 'RF'
-  parameters:
-    n_estimators: 100
-    n_jobs: -1
-    max_features: 0.8
-pipeline:
-  rolling_stats:
-    attr: [mean, std]
-    windows: [48, 7]
-    patterns: ['_mean$', '_std$']
-  drop_feature_corr:
-    threshold: 0.98
+model: model_config/rf.yml
+pipeline: pipeline_config/rolling_stats.yml

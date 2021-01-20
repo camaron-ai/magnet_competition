@@ -1,10 +1,2 @@
-model:
-  instance: 'LR'
-  parameters: {}
-pipeline:
-  rolling_stats:
-    attr: [mean, std]
-    windows: [48, 32, 24]
-    patterns: ['_mean$', '_std$', _min$, _max$]
-  drop_feature_corr:
-    threshold: 0.98
+model: model_config/lr.yml
+pipeline: pipeline_config/rolling_stats.yml
