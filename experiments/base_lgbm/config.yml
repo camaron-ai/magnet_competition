@@ -1,4 +1,2 @@
-model:
-  instance: 'LGBM'
-  parameters: {}
-pipeline: {}
+model: model_config/base_lgbm.yml
+pipeline: pipeline_config/no_op.yml

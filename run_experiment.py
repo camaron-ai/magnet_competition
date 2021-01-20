@@ -36,6 +36,8 @@ def main(experiment_path: str, eval_mode: bool = True,
     experiment_path = Path(experiment_path)
     config = load_data.read_config_file('./config/config.yml')
     experiment_config = load_data.read_config_file(experiment_path / 'config.yml')
+    pipeline_config = load_data.read_config_file(experiment_config['pipeline'])
+    model_config = load_data.read_config_file(experiment_config['model'])
 
     directories = config['directories']
     data_path = Path(directories['data'])
@@ -79,7 +81,6 @@ def main(experiment_path: str, eval_mode: bool = True,
     valid_data.reset_index(drop=True, inplace=True)
     # importing pipeline
     logging.info('building pipeline')
-    pipeline_config = experiment_config.pop('pipeline', {})
     pipeline = build_pipeline(pipeline_config)
     logging.info(f'{pipeline}')
 
@@ -97,7 +98,6 @@ def main(experiment_path: str, eval_mode: bool = True,
     logging.info(f'{features[:30]}')
 
     # importing model to train
-    model_config = experiment_config['model']
     model_instance = model_library[model_config['instance']]
     logging.info('training horizon 0 model')
     # making model for horizon 0

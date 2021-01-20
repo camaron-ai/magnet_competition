@@ -1,0 +1,5 @@
+instance: 'LGBM'
+parameters:
+  n_estimators: 500
+  colsample_bytree: 0.8
+  subsample: 0.5
