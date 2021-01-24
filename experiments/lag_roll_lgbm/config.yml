@@ -1,0 +1,2 @@
+model: model_config/lgbm_500.yml
+pipeline: pipeline_config/rolling_stats_lags.yml

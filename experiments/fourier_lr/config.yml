@@ -1,2 +1,2 @@
-model: model_config/base_lgbm.yml
+model: model_config/lr.yml
 pipeline: pipeline_config/fourier.yml

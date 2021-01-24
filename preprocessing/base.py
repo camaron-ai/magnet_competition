@@ -4,13 +4,23 @@ import numpy as np
 from pandas.api.types import is_numeric_dtype
 
 
-def fillna_features(X: pd.DataFrame):
+def fillna_features(X: pd.DataFrame,
+                    features: List[str] = None):
+    if features is None:
+        features = X.columns
     # fillnan values with the closest non-nan value
-    for feature, values in X.items():
+    for feature, values in X[features].items():
         if is_numeric_dtype(values) and values.isna().any():
             values = values.fillna(method='ffill').fillna(method='backfill')
             X[feature] = values
     return X
+
+
+# def fillna_features(X: pd.DataFrame):
+#     # fillnan values with the closest non-nan value
+#     X['smoothed_ssn'] = X['smoothed_ssn'].fillna(method='ffill')
+#     X = X.interpolate()
+#     return X
 
 
 def agregate_data(X: pd.DataFrame, on: List[str],
@@ -38,6 +48,8 @@ def merge_daily(data: pd.DataFrame,
     data = data.merge(other.drop('timedelta', axis=1),
                       on=['period', 'day'],
                       how='left')
+    data = fillna_features(data,
+                           features=other.columns)
     data.drop('day', inplace=True, axis=1)
     other.drop('day', inplace=True, axis=1)
     return data
@@ -63,9 +75,16 @@ def solar_wind_preprocessing(solar_wind: pd.DataFrame,
     solar_wind['timedelta'] += pd.to_timedelta(1, unit='m')
     solar_wind['timedelta'] = solar_wind['timedelta'].dt.ceil('H')
     solar_wind['temperature'] = np.log(solar_wind['temperature'] + 1)
-    # solar_wind['byz'] = calculate_magnitud(solar_wind[['by_gsm', 'bz_gsm']])
-    # features.append('byz')
-    return solar_wind, features
+    solar_wind['speed'] = np.sqrt(solar_wind['speed'])
+
+    nan_data = solar_wind.loc[:, features].isna().mean(axis=1)
+    solar_wind['nan_data'] = nan_data
+    solar_wind['byz'] = calculate_magnitud(solar_wind[['by_gsm', 'bz_gsm']])
+    hourly_solar_wind = agregate_data(solar_wind,
+                                      on=['period', 'timedelta'],
+                                      features=features + ['byz', 'nan_data'])
+    hourly_solar_wind.drop('nan_data_std', axis=1, inplace=True)
+    return hourly_solar_wind
 
 
 def preprocessing(solar_wind: pd.DataFrame,
@@ -77,12 +96,8 @@ def preprocessing(solar_wind: pd.DataFrame,
 
     # adding a minute and ceiling the minutes to the next hour to not leak
     # about the future
-    solar_wind, features = solar_wind_preprocessing(solar_wind, features)
-    hourly_solar_wind = agregate_data(solar_wind,
-                                      on=['period', 'timedelta'],
-                                      features=features)
-
-    data = merge_daily(hourly_solar_wind, sunspots)
+    solar_wind = solar_wind_preprocessing(solar_wind, features)
+    data = merge_daily(solar_wind, sunspots)
     if stl_pos is not None:
         stl_pos = stl_preprocessing(stl_pos)
         data = merge_daily(data, stl_pos)

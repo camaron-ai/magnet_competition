@@ -64,7 +64,7 @@ class Lagger(FeatureFilter):
             X.dropna(inplace=True)
             X.reset_index(drop=True, inplace=True)
 
-        X.fillna({feature: -999
+        X.fillna({feature: values.median()
                   for feature, values in X.items()
                   if (is_numeric_dtype(values) and
                       values.isna().any())}, inplace=True)
@@ -85,9 +85,18 @@ class RollingStats(FeatureFilter):
                        attr: str = 'mean'):
         def _inner(series):
             moving_series = series.rolling(window, min_periods=1)
-            attr_mv_series = getattr(moving_series, attr)
-            return attr_mv_series()
+            attr_mv_series = self.getattr(moving_series, attr)
+            return attr_mv_series
         return _inner
+
+    def getattr(self, series, attr):
+        splitted_attr = attr.split('_')
+        if len(splitted_attr) > 1:
+            attr, param = splitted_attr
+            series = getattr(series, attr)
+            return series(float(param))
+        else:
+            return getattr(series, attr)()
 
     def transform(self, X: pd.DataFrame):
         for window, feature, attr in product(self.windows,
@@ -100,7 +109,6 @@ class RollingStats(FeatureFilter):
             X.dropna(inplace=True)
             X.reset_index(drop=True, inplace=True)
         return X
-
 
 
 class DifferenceFeatures(FeatureFilter):

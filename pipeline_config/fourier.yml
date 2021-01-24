@@ -1,0 +1,10 @@
+fourier:
+  lags: 32
+  patterns: ['bx_gsm_mean', 'by_gsm_mean', 'bz_gsm_mean',
+            'theta_gsm_mean', 'speed_mean']
+rolling_stats:
+  attr: [mean, std]
+  windows: [48, 7]
+  patterns: ['_mean$', '_std$']
+drop_feature_corr:
+  threshold: 0.98

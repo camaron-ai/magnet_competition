@@ -45,6 +45,7 @@ def feature_importances(model, features):
     fi = pd.DataFrame({'feature': features,
                        'importance': importances})
     fi.sort_values(by='importance', ascending=False, inplace=True)
+    fi.reset_index(drop=True, inplace=True)
     return fi
 
 
