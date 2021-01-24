@@ -30,7 +30,7 @@ def load_models():
         # if the models is not trained, skip it
         if not os.path.exists(experiment_path):
             continue
-        # print(f'loading experiment {experiment}')
+        print(f'loading experiment {experiment}')
         # load everything need it
         model_h0 = joblib.load(experiment_path / 'model_h0.pkl')
         model_h1 = joblib.load(experiment_path / 'model_h1.pkl')
