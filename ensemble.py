@@ -24,14 +24,19 @@ def ensemble(data: pd.DataFrame,
     return ensemble_pred
 
 
-def every_combination(combination, start: int = 2):
+def every_combination(combination, start: int = 2,
+                      upto: int = None):
+    if upto is None:
+        upto = len(combination)
     output = []
-    for r in range(start, len(combination) + 1):
+    for r in range(start, upto + 1):
         output += list(combinations(combination, r))
     return output
 
 
-def main():
+@click.command()
+@click.option('--upto', default=None, type=int)
+def main(upto):
     path = Path('experiments')
     experiment_list = os.listdir(path)
 
@@ -53,7 +58,8 @@ def main():
 
     results = []
 
-    for combination in every_combination(predictions.index.unique()):
+    for combination in every_combination(predictions.index.unique(),
+                                         upto=upto):
         predictions_combination = predictions.loc[list(combination)]
         predictions_ensemble = ensemble(predictions_combination)
         target_ensemble = target.merge(predictions_ensemble,
@@ -63,6 +69,7 @@ def main():
         assert target_ensemble[default.yhat].isna().sum().sum() == 0
         combination_metric = compute_metrics(target_ensemble)
         combination_metric['experiment'] = '_'.join(combination)
+        combination_metric['n_model'] = len(combination)
         results.append(combination_metric)
         print(combination_metric)
     results = pd.DataFrame(results)
