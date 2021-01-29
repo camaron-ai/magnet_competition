@@ -51,3 +51,14 @@ def feature_importances(model, features):
 
 def make_error_plot(prediction: pd.DataFrame):
     pass
+
+
+def compute_metrics_per_period(data, target='t',
+                               yhat='yhat', suffix=''):
+    errors = []
+    for period, data_period in data.groupby('period'):
+        period_errors = compute_metrics(data_period, target=target,
+                                        yhat=yhat, suffix=suffix)
+        period_errors['period'] = period
+        errors.append(period_errors)
+    return pd.DataFrame(errors)

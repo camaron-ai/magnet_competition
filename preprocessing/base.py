@@ -38,8 +38,8 @@ def create_target(dst_values: pd.DataFrame):
 
 def merge_daily(data: pd.DataFrame,
                 other: pd.DataFrame) -> pd.DataFrame:
-    data['day'] = data['timedelta'].dt.days
-    other['day'] = other['timedelta'].dt.days
+    data.loc[:, 'day'] = data['timedelta'].dt.days
+    other.loc[:, 'day'] = other['timedelta'].dt.days
     other.drop_duplicates(subset=['period', 'day'],
                           inplace=True)
     data = data.merge(other.drop('timedelta', axis=1),
@@ -60,7 +60,7 @@ def stl_preprocessing(data: pd.DataFrame):
     period_data = data.groupby('period')
     for feature in working_features:
         direction = period_data[feature].diff().fillna(0)
-        data[f'{feature}_direction'] = np.clip(direction, -1, 1)
+        data.loc[:, f'{feature}_direction'] = np.clip(direction, -1, 1)
     return data
 
 
@@ -70,10 +70,10 @@ def calculate_magnitud(vectors):
 
 def solar_wind_preprocessing(solar_wind: pd.DataFrame,
                              features: List[str]):
-    solar_wind['timedelta'] += pd.to_timedelta(1, unit='m')
-    solar_wind['timedelta'] = solar_wind['timedelta'].dt.ceil('H')
-    solar_wind['temperature'] = np.log(solar_wind['temperature'] + 1)
-    solar_wind['speed'] = np.sqrt(solar_wind['speed'])
+    solar_wind.loc[:, 'timedelta'] += pd.to_timedelta(1, unit='m')
+    solar_wind.loc[:, 'timedelta'] = solar_wind['timedelta'].dt.ceil('H')
+    solar_wind.loc[:, 'temperature'] = np.log(solar_wind['temperature'] + 1)
+    solar_wind.loc[:, 'speed'] = np.sqrt(solar_wind['speed'])
 
     hourly_solar_wind = agregate_data(solar_wind,
                                       on=['period', 'timedelta'],

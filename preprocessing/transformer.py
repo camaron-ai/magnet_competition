@@ -104,7 +104,7 @@ class RollingStats(FeatureFilter):
             grouped_feature = X.groupby(self.on)[feature]
             moving_series = grouped_feature.transform(self.rolling_series(window, attr))
             moving_series.fillna(0, inplace=True)
-            X[f'{feature}_{attr}_{window}h'] = moving_series
+            X.loc[:, f'{feature}_{attr}_{window}h'] = moving_series
         if self.dropna:
             X.dropna(inplace=True)
             X.reset_index(drop=True, inplace=True)
@@ -267,3 +267,34 @@ class CustomPCA(FeatureFilter):
         pca_data = pd.DataFrame(transformed_data, columns=columns)
         del transformed_data
         return pd.concat([X, pca_data], axis=1)
+
+
+class Normalize(BaseEstimator, TransformerMixin):
+    def __init__(self, drop_features: List[str] = ['timedelta', 't0', 't1', 'period']):
+        self.drop_features = drop_features
+        self.scaler = StandardScaler()
+
+    def fit(self, X: pd.DataFrame, y=None):
+        self.features = [f for f in X.columns
+                         if f not in self.drop_features]
+
+        self.scaler = self.scaler.fit(X.loc[:, self.features])
+        return self
+
+    def transform(self, X: pd.DataFrame):
+        X.loc[:, self.features] = self.scaler.transform(X.loc[:, self.features])
+        return X
+
+
+class ToDtype(BaseEstimator, TransformerMixin):
+    def __init__(self, drop_features: List[str] = ['timedelta', 'period']):
+        self.drop_features = drop_features
+
+    def fit(self, X: pd.DataFrame, y=None):
+        self.features = [f for f in X.columns
+                         if f not in self.drop_features]
+
+    def transform(self, X):
+        features = [f for f in X.columns if f in self.features]
+        X.loc[:, features] = X.loc[:, features].astype(np.float32)
+        return X
