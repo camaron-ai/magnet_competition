@@ -37,20 +37,20 @@ def cid_ce(values: np.array):
 def calculate_features(data: pd.DataFrame,
                        timestep=np.nan) -> Dict[str, float]:
     features = {'timedelta': timestep}
-    for hours in [7, 48]:
+    for hours in [1*60, 7*60]:
         last_hours_data = data.iloc[-hours:, :]
         agg_features = last_hours_data.agg(('mean', 'std')).to_dict()
-        features[f'{hours}h'] = agg_features
+        features[f'{hours//60}h'] = agg_features
 
-    # last_2day = data.iloc[-48*60:, :]
-    # complex_features = last_2day.agg(('mean', 'std')).to_dict()
-    # for feature, values in last_2day.items():
-    #     values.dropna(inplace=True)
-    #     if len(values) == 0:
-    #         values = np.array([np.nan])
-    #     _complex_features = calculate_linreg_features(values)
-    #     _complex_features['cid_ce'] = cid_ce(values)
-    #     _complex_features.update(consecutive_count_above_below_mean(values))
-    #     complex_features[feature].update(_complex_features)
-    # features['48h'] = complex_features
+    last_2day = data.iloc[-48*60:, :]
+    complex_features = last_2day.agg(('mean', 'std')).to_dict()
+    for feature, values in last_2day.items():
+        values = values.dropna()
+        if len(values) == 0:
+            continue
+        _complex_features = calculate_linreg_features(values)
+        _complex_features['cid_ce'] = cid_ce(values)
+        _complex_features.update(consecutive_count_above_below_mean(values))
+        complex_features[feature].update(_complex_features)
+    features['48h'] = complex_features
     return join_multiple_dict(features)

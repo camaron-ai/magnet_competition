@@ -311,3 +311,18 @@ class FillNaN(BaseEstimator, TransformerMixin):
 
     def transform(self, X: pd.DataFrame):
         return X.fillna(self.fill_values)
+
+
+class MakeSureFeatures(BaseEstimator, TransformerMixin):
+    def fit(self, X: pd.DataFrame, y=None):
+        self.features = X.columns
+        return self
+
+    def transform(self, X):
+        return X.assign(**{f: np.nan
+                           for f in self.features
+                           if f not in X})
+        # for f in self.features:
+        #     if f not in X:
+        #         X[f] = np.nan
+        # return X

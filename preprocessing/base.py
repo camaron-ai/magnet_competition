@@ -57,30 +57,28 @@ def stl_preprocessing(data: pd.DataFrame):
     return data
 
 
-def solar_wind_preprocessing(solar_wind: pd.DataFrame):
+def solar_wind_preprocessing(solar_wind: pd.DataFrame,
+                             features: List[str] = None):
     solar_wind.loc[:, 'temperature'] = np.log(solar_wind['temperature'] + 1)
     solar_wind.loc[:, 'speed'] = np.sqrt(solar_wind['speed'])
-
+    if features is not None:
+        solar_wind = solar_wind.loc[:, features]
     return solar_wind
 
 
 def split_data_in_chunks(data: pd.DataFrame,
                          stride=pd.to_timedelta(7, unit='d')
                          ) -> Dict[Tuple[str], pd.DataFrame]:
-    one_minute = pd.to_timedelta(1, unit='m')
+    # one_minute = pd.to_timedelta(1, unit='m')
     output = {}
     for timestep in data.index.ceil('H').unique():
         output[timestep] = data.loc[timestep-stride: timestep, :]
     return output
 
 
-# def from_chunks_to_dataframe(chunks: Dict[str, pd.DataFrame], n_jobs: int = 8):
-#     return pd.DataFrame(Parallel(n_jobs=n_jobs)(delayed(calculate_features)(datastep, timestep)
-#                         for timestep, datastep in chunks.items()))
-
-# def from_chunks_to_dataframe(chunks: Dict[str, pd.DataFrame], n_jobs: int = 8):
-#     return pd.DataFrame([calculate_features(datastep, timestep)
-#                         for timestep, datastep in chunks.items()])
+def from_chunks_to_dataframe(chunks: Dict[str, pd.DataFrame], n_jobs: int = 8):
+    return pd.DataFrame(Parallel(n_jobs=n_jobs)(delayed(calculate_features)(datastep, timestep)
+                        for timestep, datastep in chunks.items()))
 
 
 def one_chunk_to_dataframe(chunk: pd.DataFrame,

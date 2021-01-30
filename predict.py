@@ -11,9 +11,6 @@ import joblib
 import default
 from models import library as model_library
 from collections import defaultdict
-import gc
-from dplr.data import Dataset, DataLoader
-from dplr import predict_dl
 import warnings
 import torch
 
@@ -85,9 +82,8 @@ def predict_dst(
     # print('applying base preprocessing')
     # print(solar_wind_7d.shape)
     # preprocess the solar wind features
-    solar_wind_7d = solar_wind_preprocessing(solar_wind_7d)
-    # filter only needit features
-    solar_wind_7d = solar_wind_7d.loc[:, default.init_features]
+    solar_wind_7d = solar_wind_preprocessing(solar_wind_7d,
+                                             features=default.init_features)
     # preprcess the satellite position features
     satellite_positions_7d = stl_preprocessing(satellite_positions_7d)
     # calculate features solar wind features
@@ -98,6 +94,7 @@ def predict_dst(
     test_data = merge_daily(test_data, sunspots)
     test_data = merge_daily(test_data, satellite_positions_7d)
 
+    print(test_data.iloc[-1].to_dict())
     # print('done')
     # Make a prediction
     # init the prediction at 0
@@ -116,7 +113,6 @@ def predict_dst(
         # test_data_e = test_data.copy()
         # print('applying preprocessing pipeline')
         test_data_e = pipeline.transform(test_data)
-        print(test_data_e)
         features = [feature for feature in test_data_e.columns
                     if feature not in default.ignore_features]
         # ds = Dataset.from_dataframe(test_data_e, features=features)
@@ -127,15 +123,12 @@ def predict_dst(
         tensor_features = torch.from_numpy(test_data_e[features].to_numpy())
         prediction_output = model(tensor_features)
         prediction = prediction_output['prediction'][-1]
-        print(prediction)
         pred_at_t0, pred_at_t1 = prediction
         # print('predicting..')
         # predict and sum it to the total prediction
         prediction_at_t0 += pred_at_t0.item()
         prediction_at_t1 += pred_at_t1.item()
         # print('done')
-        del features, test_data_e
-        gc.collect()
     # divide by the number of experiments
     prediction_at_t0 /= len(repo)
     prediction_at_t1 /= len(repo)
@@ -159,16 +152,18 @@ if __name__ == '__main__':
     stl_pos = load_data.read_csv(data_path / 'satellite_positions.csv')
 
     duration_7 = pd.to_timedelta(7, unit='d')
-
+    solar_wind = solar_wind[solar_wind['period'] == 'train_a']
+    sunspots = sunspots[sunspots['period'] == 'train_a']
+    stl_pos = stl_pos[stl_pos['period'] == 'train_a']
     solar_wind = solar_wind[solar_wind['timedelta'] < duration_7]
     sunspots = sunspots[sunspots['timedelta'] < duration_7]
     stl_pos = stl_pos[stl_pos['timedelta'] < duration_7]
     latest_sunspot_number = sunspots['smoothed_ssn'].values[-1]
-
     solar_wind.set_index(['timedelta'], inplace=True)
     stl_pos.set_index(['timedelta'], inplace=True)
 
     start = time.time()
     t0, t1 = predict_dst(solar_wind, stl_pos, latest_sunspot_number)
     end = time.time()
+    print(dst_labels[dst_labels['timedelta'] == duration_7])
     print(t0, t1, end-start)
