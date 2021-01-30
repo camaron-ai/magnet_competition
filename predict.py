@@ -3,7 +3,9 @@ import numpy as np
 from pathlib import Path
 import os
 from typing import Tuple
-from preprocessing.base import preprocessing
+from preprocessing.base import solar_wind_preprocessing
+from preprocessing.base import stl_preprocessing
+from preprocessing.base import merge_daily, one_chunk_to_dataframe
 import logging
 import joblib
 import default
@@ -76,17 +78,26 @@ def predict_dst(
     sunspots["smoothed_ssn"] = latest_sunspot_number
 
     sunspots.reset_index(inplace=True)
-    solar_wind_7d.reset_index(inplace=True)
     satellite_positions_7d.reset_index(inplace=True)
-    solar_wind_7d.loc[:, 'period'] = 'test'
     sunspots.loc[:, 'period'] = 'test'
     satellite_positions_7d.loc[:, 'period'] = 'test'
 
     # print('applying base preprocessing')
     # print(solar_wind_7d.shape)
-    test_data = preprocessing(solar_wind_7d, sunspots,
-                              satellite_positions_7d,
-                              features=default.init_features)
+    # preprocess the solar wind features
+    solar_wind_7d = solar_wind_preprocessing(solar_wind_7d)
+    # filter only needit features
+    solar_wind_7d = solar_wind_7d.loc[:, default.init_features]
+    # preprcess the satellite position features
+    satellite_positions_7d = stl_preprocessing(satellite_positions_7d)
+    # calculate features solar wind features
+    timestep = solar_wind_7d.index[-1]
+    test_data = one_chunk_to_dataframe(solar_wind_7d, timestep)
+    test_data['period'] = 'test'
+
+    test_data = merge_daily(test_data, sunspots)
+    test_data = merge_daily(test_data, satellite_positions_7d)
+
     # print('done')
     # Make a prediction
     # init the prediction at 0
@@ -105,16 +116,18 @@ def predict_dst(
         # test_data_e = test_data.copy()
         # print('applying preprocessing pipeline')
         test_data_e = pipeline.transform(test_data)
+        print(test_data_e)
         features = [feature for feature in test_data_e.columns
                     if feature not in default.ignore_features]
-        test_data_e = test_data_e.iloc[[-1]]
         # ds = Dataset.from_dataframe(test_data_e, features=features)
         # dl = DataLoader(ds, batch_size=len(ds), shuffle=False)
 
         # prediction_output = predict_dl(model, dl)
         # prediction = prediction_output['prediction'][-1]
-        tensor_features = torch.from_numpy(test_data_e[features].to_array())
-        prediction = model(tensor_features)[-1]
+        tensor_features = torch.from_numpy(test_data_e[features].to_numpy())
+        prediction_output = model(tensor_features)
+        prediction = prediction_output['prediction'][-1]
+        print(prediction)
         pred_at_t0, pred_at_t1 = prediction
         # print('predicting..')
         # predict and sum it to the total prediction

@@ -1,6 +1,6 @@
 import yaml
 import os
-from typing import Union
+from typing import Union, Dict
 import pandas as pd
 import numpy as np
 path_type = Union[str, os.PathLike]
@@ -35,3 +35,16 @@ def split_train_data(data: pd.DataFrame, test_frac: float = 0.2,
     else:
         valid_indexes = train_indexes[-test_size:]
         return train_indexes, valid_indexes
+
+
+def join_multiple_dict(dict_values: Dict[str, Dict[str, float]]):
+    output = {}
+    for name, value in dict_values.items():
+        if isinstance(value, dict):
+            value = join_multiple_dict(value)
+            sub_dict = {f'{name}__{subname}': subvalue
+                        for subname, subvalue in value.items()}
+            output.update(sub_dict)
+        else:
+            output[name] = value
+    return output

@@ -6,7 +6,7 @@ from preprocessing.transformer import RollingStats
 from preprocessing.transformer import NoOp, FeatureFilter
 from preprocessing.transformer import DifferenceFeatures
 from preprocessing.transformer import Fourier, CustomPCA
-from preprocessing.transformer import Normalize, ToDtype
+from preprocessing.transformer import Normalize, ToDtype, FillNaN
 from sklearn.pipeline import Pipeline
 
 
@@ -19,7 +19,8 @@ library = {'drop_feature_corr': DropFeatureByCorr,
            'pca': CustomPCA,
            'feature_filter': FeatureFilter,
            'normalize': Normalize,
-           'dtype': ToDtype}
+           'dtype': ToDtype,
+           'fillnan': FillNaN}
 
 
 def build_pipeline(pipeline_config: Dict[str, Dict[str, Any]]):

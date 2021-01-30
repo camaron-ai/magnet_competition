@@ -270,7 +270,8 @@ class CustomPCA(FeatureFilter):
 
 
 class Normalize(BaseEstimator, TransformerMixin):
-    def __init__(self, drop_features: List[str] = ['timedelta', 't0', 't1', 'period']):
+    def __init__(self, drop_features: List[str] = ['timedelta', 't0',
+                                                   't1', 'period']):
         self.drop_features = drop_features
         self.scaler = StandardScaler()
 
@@ -298,3 +299,15 @@ class ToDtype(BaseEstimator, TransformerMixin):
         features = [f for f in X.columns if f in self.features]
         X.loc[:, features] = X.loc[:, features].astype(np.float32)
         return X
+
+
+class FillNaN(BaseEstimator, TransformerMixin):
+    def fit(self, X: pd.DataFrame, y=None):
+        numeric_features = get_numeric_features(X)
+        self.fill_values = {feature: values.median()
+                            for feature, values in X[numeric_features].items()
+                            if values.isna().any()}
+        return self
+
+    def transform(self, X: pd.DataFrame):
+        return X.fillna(self.fill_values)

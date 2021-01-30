@@ -1,7 +1,9 @@
-from typing import Tuple, List
+from typing import List, Dict, Tuple
 import pandas as pd
 import numpy as np
 from pandas.api.types import is_numeric_dtype
+from joblib import Parallel, delayed
+from preprocessing.fe import calculate_features
 
 
 def fillna_features(X: pd.DataFrame,
@@ -18,15 +20,6 @@ def fillna_features(X: pd.DataFrame,
             values = values.fillna(method='backfill')
             X[feature] = values
     return X
-
-
-def agregate_data(X: pd.DataFrame, on: List[str],
-                  features: List[str],
-                  agg_attr: Tuple[str] = ('mean', 'std')):
-    aggr_data = X.groupby(on)[features].agg(agg_attr)
-    aggr_data.columns = ['_'.join(column) for column in aggr_data.columns]
-    aggr_data.reset_index(inplace=True)
-    return aggr_data
 
 
 def create_target(dst_values: pd.DataFrame):
@@ -64,36 +57,45 @@ def stl_preprocessing(data: pd.DataFrame):
     return data
 
 
-def calculate_magnitud(vectors):
-    return np.sqrt(np.square(vectors).sum(axis=1))
-
-
-def solar_wind_preprocessing(solar_wind: pd.DataFrame,
-                             features: List[str]):
-    solar_wind.loc[:, 'timedelta'] += pd.to_timedelta(1, unit='m')
-    solar_wind.loc[:, 'timedelta'] = solar_wind['timedelta'].dt.ceil('H')
+def solar_wind_preprocessing(solar_wind: pd.DataFrame):
     solar_wind.loc[:, 'temperature'] = np.log(solar_wind['temperature'] + 1)
     solar_wind.loc[:, 'speed'] = np.sqrt(solar_wind['speed'])
 
-    hourly_solar_wind = agregate_data(solar_wind,
-                                      on=['period', 'timedelta'],
-                                      features=features)
-    return hourly_solar_wind
+    return solar_wind
 
 
-def preprocessing(solar_wind: pd.DataFrame,
-                  sunspots: pd.DataFrame,
-                  stl_pos: pd.DataFrame = None,
-                  features: List[str] = None):
-    if features is None:
-        features = solar_wind.columns.drop(['timedelta', 'period', 'source'])
+def split_data_in_chunks(data: pd.DataFrame,
+                         stride=pd.to_timedelta(7, unit='d')
+                         ) -> Dict[Tuple[str], pd.DataFrame]:
+    one_minute = pd.to_timedelta(1, unit='m')
+    output = {}
+    for timestep in data.index.ceil('H').unique():
+        output[timestep] = data.loc[timestep-stride: timestep, :]
+    return output
 
-    # adding a minute and ceiling the minutes to the next hour to not leak
-    # about the future
-    solar_wind = solar_wind_preprocessing(solar_wind, features)
-    data = merge_daily(solar_wind, sunspots)
-    if stl_pos is not None:
-        stl_pos = stl_preprocessing(stl_pos)
-        data = merge_daily(data, stl_pos)
-    data = fillna_features(data, interpolate=True)
-    return data
+
+# def from_chunks_to_dataframe(chunks: Dict[str, pd.DataFrame], n_jobs: int = 8):
+#     return pd.DataFrame(Parallel(n_jobs=n_jobs)(delayed(calculate_features)(datastep, timestep)
+#                         for timestep, datastep in chunks.items()))
+
+# def from_chunks_to_dataframe(chunks: Dict[str, pd.DataFrame], n_jobs: int = 8):
+#     return pd.DataFrame([calculate_features(datastep, timestep)
+#                         for timestep, datastep in chunks.items()])
+
+
+def one_chunk_to_dataframe(chunk: pd.DataFrame,
+                           timestep=np.nan):
+    features = calculate_features(chunk, timestep)
+    return pd.DataFrame([features])
+
+
+def split_into_period(data: pd.DataFrame, features: List[str],
+                      n_jobs: int = 8) -> pd.DataFrame:
+    output_data = []
+    for period, period_data in data.groupby('period'):
+        chunks = split_data_in_chunks(period_data.loc[:, features])
+        fe_data = from_chunks_to_dataframe(chunks, n_jobs=n_jobs)
+        fe_data.loc[:, 'period'] = period
+        output_data.append(fe_data)
+        del chunks
+    return pd.concat(output_data, ignore_index=True, axis=0)
