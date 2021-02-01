@@ -69,32 +69,29 @@ def predict_dst(
         A tuple of two predictions, for (t and t + 1 hour) respectively; these should
         be between -2,000 and 500.
     """
-    # Re-format data to fit into our pipeline
-    sunspots = pd.DataFrame(index=solar_wind_7d.index,
-                            columns=["smoothed_ssn"])
-    sunspots["smoothed_ssn"] = np.log(latest_sunspot_number)
-
-    sunspots.reset_index(inplace=True)
+    # make a copy so we dont modify the main dataframe
+    solar_wind_7d = solar_wind_7d.copy()
+    satellite_positions_7d = satellite_positions_7d.copy()
     satellite_positions_7d.reset_index(inplace=True)
-    sunspots.loc[:, 'period'] = 'test'
     satellite_positions_7d.loc[:, 'period'] = 'test'
 
-    # print('applying base preprocessing')
-    # print(solar_wind_7d.shape)
     # preprocess the solar wind features
     solar_wind_7d = solar_wind_preprocessing(solar_wind_7d,
                                              features=default.init_features)
     # preprcess the satellite position features
     satellite_positions_7d = stl_preprocessing(satellite_positions_7d)
     # calculate features solar wind features
-    timestep = solar_wind_7d.index[-1]
+    timestep = solar_wind_7d.index[-1].ceil('H')
     test_data = one_chunk_to_dataframe(solar_wind_7d, timestep)
     test_data['period'] = 'test'
 
-    test_data = merge_daily(test_data, sunspots)
-    test_data = merge_daily(test_data, satellite_positions_7d)
+    satellite_positions_7d.drop(['period', 'timedelta'], axis=1, inplace=True)
+    satellite_positions_7d = satellite_positions_7d.tail(1)
+    satellite_positions_7d.reset_index(drop=True, inplace=True)
+    test_data = pd.concat((test_data, satellite_positions_7d), axis=1)
 
-
+    # test_data = merge_daily(test_data, satellite_positions_7d)
+    test_data["smoothed_ssn"] = np.log(latest_sunspot_number)
     # print('done')
     # Make a prediction
     # init the prediction at 0
@@ -113,8 +110,8 @@ def predict_dst(
         # test_data_e = test_data.copy()
         # print('applying preprocessing pipeline')
         test_data_e = pipeline.transform(test_data)
-        features = [feature for feature in test_data_e.columns
-                    if feature not in default.ignore_features]
+        features = sorted([feature for feature in test_data_e.columns
+                           if feature not in default.ignore_features])
         # ds = Dataset.from_dataframe(test_data_e, features=features)
         # dl = DataLoader(ds, batch_size=len(ds), shuffle=False)
 
@@ -151,19 +148,25 @@ if __name__ == '__main__':
     sunspots = load_data.read_csv(data_path / 'sunspots.csv')
     stl_pos = load_data.read_csv(data_path / 'satellite_positions.csv')
 
-    duration_7 = pd.to_timedelta(7, unit='d')
+    date = pd.to_timedelta(7, unit='d')
+    date = pd.to_timedelta('111 days 04:00:00')
+    one_minute = pd.to_timedelta("1 minute")
+    seven_days = pd.to_timedelta("7 days")
     solar_wind = solar_wind[solar_wind['period'] == 'train_a']
     sunspots = sunspots[sunspots['period'] == 'train_a']
     stl_pos = stl_pos[stl_pos['period'] == 'train_a']
-    solar_wind = solar_wind[solar_wind['timedelta'] < duration_7]
-    sunspots = sunspots[sunspots['timedelta'] < duration_7]
-    stl_pos = stl_pos[stl_pos['timedelta'] < duration_7]
-    latest_sunspot_number = sunspots['smoothed_ssn'].values[-1]
     solar_wind.set_index(['timedelta'], inplace=True)
     stl_pos.set_index(['timedelta'], inplace=True)
+    sunspots.set_index(['timedelta'], inplace=True)
+    t_minus_7 = date - seven_days
+    # last seven days of solar wind data except for the current minute
+    solar_wind = solar_wind[t_minus_7: date - one_minute]
+    stl_pos = (stl_pos.loc[:date].iloc[-7:, :])
+    sunspots = sunspots.loc[:date]
+    latest_sunspot_number = sunspots['smoothed_ssn'].values[-1]
 
     start = time.time()
     t0, t1 = predict_dst(solar_wind, stl_pos, latest_sunspot_number)
     end = time.time()
-    print(dst_labels[dst_labels['timedelta'] == duration_7])
+    print(dst_labels[dst_labels['timedelta'] == date])
     print(t0, t1, end-start)
