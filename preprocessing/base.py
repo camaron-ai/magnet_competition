@@ -69,10 +69,10 @@ def solar_wind_preprocessing(solar_wind: pd.DataFrame,
 def split_data_in_chunks(data: pd.DataFrame,
                          stride=pd.to_timedelta(7, unit='d')
                          ) -> Dict[Tuple[str], pd.DataFrame]:
-    # one_minute = pd.to_timedelta(1, unit='m')
+    one_minute = pd.to_timedelta(1, unit='m')
     output = {}
     for timestep in data.index.ceil('H').unique():
-        output[timestep] = data.loc[timestep-stride: timestep, :]
+        output[timestep] = data.loc[timestep-stride: timestep-one_minute, :]
     return output
 
 

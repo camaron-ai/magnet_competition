@@ -72,7 +72,7 @@ def predict_dst(
     # Re-format data to fit into our pipeline
     sunspots = pd.DataFrame(index=solar_wind_7d.index,
                             columns=["smoothed_ssn"])
-    sunspots["smoothed_ssn"] = latest_sunspot_number
+    sunspots["smoothed_ssn"] = np.log(latest_sunspot_number)
 
     sunspots.reset_index(inplace=True)
     satellite_positions_7d.reset_index(inplace=True)
@@ -94,7 +94,7 @@ def predict_dst(
     test_data = merge_daily(test_data, sunspots)
     test_data = merge_daily(test_data, satellite_positions_7d)
 
-    print(test_data.iloc[-1].to_dict())
+
     # print('done')
     # Make a prediction
     # init the prediction at 0
