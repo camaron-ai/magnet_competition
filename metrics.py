@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import torch
+import torch.nn.functional as F
 
 
 def to_numpy(function):
@@ -62,3 +64,14 @@ def compute_metrics_per_period(data, target='t',
         period_errors['period'] = period
         errors.append(period_errors)
     return pd.DataFrame(errors)
+
+
+def torch_rmse(yhat, y):
+    return torch.sqrt(F.mse_loss(yhat, y))
+
+
+def calculate_error_on_test(train_data):
+    t7_days = pd.to_timedelta(7, unit='d')
+    correct_period = train_data[train_data['period'] == 'train_a']
+    first_2500 = correct_period[correct_period['timedelta'] >= t7_days]
+    return compute_metrics(first_2500.iloc[:2501])

@@ -1,2 +1,0 @@
-model: model_config/rf.yml
-pipeline: pipeline_config/rolling_stats.yml

@@ -1,6 +1,0 @@
-rolling_stats:
-  attr: [mean, std]
-  windows: [48, 7]
-  patterns: ['_mean$', '_std$']
-drop_feature_corr:
-  threshold: 0.98

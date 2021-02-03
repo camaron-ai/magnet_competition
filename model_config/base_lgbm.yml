@@ -1,2 +1,3 @@
 instance: 'LGBM'
-parameters: {}
+parameters:
+  random_state: 2020

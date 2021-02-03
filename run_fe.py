@@ -8,6 +8,7 @@ import logging
 import click
 import default
 import warnings
+import numpy as np
 
 warnings.filterwarnings('ignore')
 logger = logging.getLogger(__name__)
@@ -52,6 +53,7 @@ def main(use_sample: bool = False):
     logging.info('merging other datasets')
     target = create_target(dst_labels)
     stl_pos = stl_preprocessing(stl_pos)
+    sunspots['smoothed_ssn'] = np.log(sunspots['smoothed_ssn'])
     data = merge_daily(data, stl_pos)
     data = merge_daily(data, sunspots)
 

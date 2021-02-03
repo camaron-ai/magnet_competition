@@ -35,18 +35,36 @@ def load_models():
             continue
         print(f'loading experiment {experiment}')
         # load everything need it
-        model_h0 = joblib.load(experiment_path / 'model.pkl')
-        # model_h1 = joblib.load(experiment_path / 'model_h1.pkl')
+        model_h0 = joblib.load(experiment_path / 'model_h0.pkl')
+
+        model_h1 = (joblib.load(experiment_path / 'model_h1.pkl')
+                    if os.path.exists(experiment_path / 'model_h1.pkl')
+                    else None)
         pipeline = joblib.load(experiment_path / 'pipeline.pkl')
         # save it into the experiment's dict
-        repo[experiment]['model'] = model_h0
-        # repo[experiment]['model_h1'] = model_h1
+        repo[experiment]['model_h0'] = model_h0
+        repo[experiment]['model_h1'] = model_h1
         repo[experiment]['pipeline'] = pipeline
     # print('complete!')
     return repo
 
 
 repo = load_models()
+
+
+def predict(test_data, model_h0, model_h1=None):
+    if model_h1 is None:
+        tensor_features = torch.from_numpy(test_data.to_numpy())
+        prediction_output = model_h0(tensor_features)
+        prediction = prediction_output['prediction'][-1]
+        pred_at_t0, pred_at_t1 = prediction
+        pred_at_t0, pred_at_t1 = pred_at_t0.item(), pred_at_t1.item()
+    else:
+        pred_at_t0 = model_h0.predict(test_data)[-1]
+        pred_at_t1 = model_h1.predict(test_data)[-1]
+    return pred_at_t0, pred_at_t1
+
+
 
 def predict_dst(
     solar_wind_7d: pd.DataFrame,
@@ -103,8 +121,8 @@ def predict_dst(
     for experiment, experiment_repo in repo.items():
         # import the models
         # print(f'predicting using experiment {experiment}')
-        model = experiment_repo['model']
-        # model_h1 = experiment_repo['model_h1']
+        model_h0 = experiment_repo['model_h0']
+        model_h1 = experiment_repo['model_h1']
         pipeline = experiment_repo['pipeline']
 
         # test_data_e = test_data.copy()
@@ -112,19 +130,13 @@ def predict_dst(
         test_data_e = pipeline.transform(test_data)
         features = sorted([feature for feature in test_data_e.columns
                            if feature not in default.ignore_features])
-        # ds = Dataset.from_dataframe(test_data_e, features=features)
-        # dl = DataLoader(ds, batch_size=len(ds), shuffle=False)
 
-        # prediction_output = predict_dl(model, dl)
-        # prediction = prediction_output['prediction'][-1]
-        tensor_features = torch.from_numpy(test_data_e[features].to_numpy())
-        prediction_output = model(tensor_features)
-        prediction = prediction_output['prediction'][-1]
-        pred_at_t0, pred_at_t1 = prediction
-        # print('predicting..')
+        pred_at_t0, pred_at_t1 = predict(test_data_e.loc[:, features],
+                                         model_h0=model_h0,
+                                         model_h1=model_h1)
         # predict and sum it to the total prediction
-        prediction_at_t0 += pred_at_t0.item()
-        prediction_at_t1 += pred_at_t1.item()
+        prediction_at_t0 += pred_at_t0
+        prediction_at_t1 += pred_at_t1
         # print('done')
     # divide by the number of experiments
     prediction_at_t0 /= len(repo)
@@ -149,7 +161,7 @@ if __name__ == '__main__':
     stl_pos = load_data.read_csv(data_path / 'satellite_positions.csv')
 
     date = pd.to_timedelta(7, unit='d')
-    date = pd.to_timedelta('111 days 04:00:00')
+    # date = pd.to_timedelta('111 days 04:00:00')
     one_minute = pd.to_timedelta("1 minute")
     seven_days = pd.to_timedelta("7 days")
     solar_wind = solar_wind[solar_wind['period'] == 'train_a']

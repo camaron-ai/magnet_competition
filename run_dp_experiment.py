@@ -1,4 +1,5 @@
 from pathlib import Path
+import numpy as np
 import pandas as pd
 import load_data
 import logging
@@ -7,15 +8,27 @@ import joblib
 import mlflow
 import default
 import os
-from metrics import compute_metrics, feature_importances
-from metrics import compute_metrics_per_period, calculate_error_on_test
+from metrics import compute_metrics, calculate_error_on_test
+from metrics import compute_metrics_per_period, torch_rmse
 from models import library as model_library
 from pipelines import build_pipeline
+from dplr import Learner, predict_dl
+import torch
+from torch import optim
+from dplr.callback import ModelCheckpointCallBack
+from dplr.callback.record import MetricRecorderCallBack, Recoder
+from dplr.callback import ProgressBarCallBack
+from dplr.data import DataLoader, Dataset, DataBunch
 
+
+torch.manual_seed(2021)
 logger = logging.getLogger(__name__)
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(format=log_fmt,
                     level=logging.INFO)
+device = 'cpu'
+target_name = ['t0', 't1']
+batch_size = 512
 
 
 @click.command()
@@ -71,29 +84,67 @@ def main(experiment_path: str, eval_mode: bool = True,
     train_data = pipeline.transform(train_data)
     valid_data = pipeline.transform(valid_data)
 
+    use_sigmoid = experiment_config.pop('use_sigmoid', False)
+    y_limit = ((train_data['t0'].agg(('max', 'min')) * 1.2).to_list()
+               if use_sigmoid else None)
+
     features = sorted([feature for feature in train_data.columns
                        if feature not in default.ignore_features])
+    in_features = len(features)
     logging.info(f'modeling using {len(features)} features')
     logging.info(f'{features[:30]}')
 
-    # importing model to train
-    model_instance = model_library[model_config['instance']]
-    logging.info('training horizon 0 model')
-    # making model for horizon 0
-    model_h0 = model_instance(**model_config['parameters'])
-    model_h0.fit(train_data.loc[:, features], train_data.loc[:, 't0'])
+    # creating datasets
+    train_ds = Dataset.from_dataframe(train_data, features=features,
+                                      target=target_name, device=device)
+    valid_ds = Dataset.from_dataframe(valid_data, features=features,
+                                      target=target_name, device=device)
 
-    logging.info('training horizon 1 model')
-    # making model for horizon 1
-    model_h1 = model_instance(**model_config['parameters'])
-    model_h1.fit(train_data.loc[:, features], train_data.loc[:, 't1'])
+    train_dl = DataLoader(dataset=train_ds,
+                          batch_size=batch_size,
+                          shuffle=True)
+    not_shuffle_train_dl = DataLoader(dataset=train_ds,
+                                      batch_size=batch_size,
+                                      shuffle=False)
+    valid_dl = DataLoader(dataset=valid_ds,
+                          batch_size=batch_size,
+                          shuffle=False)
+    bunch = DataBunch(train_dl, valid_dl)
+
+    # importing and init model
+    model_instance = model_library[model_config['instance']]
+
+    model = model_instance(in_features=in_features,
+                           out_features=len(target_name),
+                           y_limit=y_limit,
+                           **model_config['parameters']).to(device=device)
+    # init optimizer
+    optimizer = optim.Adam(model.parameters(),
+                           **experiment_config['optimizer'])
+
+    # creating learner instance
+    logging.info('creating learner instance')
+    cbs = [Recoder, MetricRecorderCallBack(torch_rmse),
+           ModelCheckpointCallBack, ProgressBarCallBack]
+
+    learner = Learner(model, optimizer, bunch, callbacks=cbs)
+
+    logging.info('training model')
+    # making model for horizon 0
+    epochs = experiment_config.pop('epochs', 10)
+    learner.fit(epochs, seed=2020)
+
+    # avg the last 5 epochs weights
+    top_models = np.arange(epochs)[-5:]
+    learner.modelcheckpoint.load_averaged_model(top_models)
 
     logging.info('prediction h0 and h1 models')
-    train_data['yhat_t0'] = model_h0.predict(train_data.loc[:, features])
-    train_data['yhat_t1'] = model_h1.predict(train_data.loc[:, features])
-    valid_data['yhat_t0'] = model_h0.predict(valid_data.loc[:, features])
-    valid_data['yhat_t1'] = model_h1.predict(valid_data.loc[:, features])
+    valid_output = predict_dl(learner.model, valid_dl)
+    train_output = predict_dl(learner.model, not_shuffle_train_dl)
+    valid_data[['yhat_t0', 'yhat_t1']] = valid_output['prediction'].numpy()
+    train_data[['yhat_t0', 'yhat_t1']] = train_output['prediction'].numpy()
 
+    # computing metrics
     train_error = compute_metrics(train_data, suffix='_train')
     valid_error = compute_metrics(valid_data, suffix='_valid')
 
@@ -101,6 +152,7 @@ def main(experiment_path: str, eval_mode: bool = True,
                                                     suffix='_train')
     valid_error_period = compute_metrics_per_period(valid_data,
                                                     suffix='_valid')
+
     logging.info('errors')
     logging.info(f'{train_error}')
     logging.info(f'{valid_error}')
@@ -112,6 +164,9 @@ def main(experiment_path: str, eval_mode: bool = True,
             # saving predictions
             train_prediction = train_data.loc[:, default.keep_columns]
             train_prediction.to_csv(prediction_path / 'train.csv', index=False)
+            # saving training progress
+            learner.metrics_table.to_csv(experiment_path / 'trn_progress.csv',
+                                         index=False)
             # saving errors
             train_error_period.to_csv(experiment_path / 'train_erros.csv',
                                       index=False)
@@ -120,17 +175,18 @@ def main(experiment_path: str, eval_mode: bool = True,
             # valid_prediction = valid_data.loc[:, default.keep_columns]
             valid_data.to_csv(prediction_path / 'valid.csv', index=False)
             # saving feature importances if there is aviable
-            fi_h0 = feature_importances(model_h0, features)
-            fi_h1 = feature_importances(model_h1, features)
-            if (fi_h0 is not None) and (fi_h1 is not None):
-                fi_h0.to_csv(experiment_path / 'fi_h0.csv', index=False)
-                fi_h1.to_csv(experiment_path / 'fi_h1.csv', index=False)
+            # fi = feature_importances(model, features)
+            # if (fi is not None):
+            #     fi.to_csv(experiment_path / 'fi.csv', index=False)
             # saving to mlflow
             # saving metrics
             mlflow.log_metrics(train_error)
             mlflow.log_metrics(valid_error)
             # saving model parameters
             mlflow.log_params(model_config['parameters'])
+            mlflow.log_params(experiment_config['optimizer'])
+            mlflow.log_params({'epochs': epochs,
+                               'use_sigmoid': use_sigmoid})
             tags = {'use_sample': use_sample,
                     'model_instance': model_config['instance'],
                     'experiment': experiment}
@@ -144,8 +200,7 @@ def main(experiment_path: str, eval_mode: bool = True,
         test_error.to_csv(experiment_path / 'check_test_error.csv',
                           index=False)
         model_path.mkdir(exist_ok=True, parents=True)
-        joblib.dump(model_h0, model_path / 'model_h0.pkl')
-        joblib.dump(model_h1, model_path / 'model_h1.pkl')
+        joblib.dump(learner.model, model_path / 'model_h0.pkl')
         joblib.dump(pipeline, model_path / 'pipeline.pkl')
 
 

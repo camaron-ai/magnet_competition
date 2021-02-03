@@ -1,2 +1,2 @@
 model: model_config/base_lgbm.yml
-pipeline: pipeline_config/no_op.yml
+pipeline: pipeline_config/base_pipeline.yml

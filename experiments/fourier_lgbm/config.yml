@@ -1,2 +1,0 @@
-model: model_config/base_lgbm.yml
-pipeline: pipeline_config/fourier.yml

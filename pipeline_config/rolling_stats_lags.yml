@@ -1,9 +1,0 @@
-rolling_stats:
-  attr: [mean, std]
-  windows: [48, 7]
-  patterns: ['_mean$', '_std$']
-lagger:
-  patterns: [mean]
-  lags: [2]
-drop_feature_corr:
-  threshold: 0.98

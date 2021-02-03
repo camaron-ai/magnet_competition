@@ -20,9 +20,9 @@ library = {'drop_feature_corr': DropFeatureByCorr,
            'pca': CustomPCA,
            'feature_filter': FeatureFilter,
            'normalize': Normalize,
-           'dtype': ToDtype,
+           'to_float32': ToDtype,
            'fillnan': FillNaN,
-           'make_sure': MakeSureFeatures}
+           'make_sure_features': MakeSureFeatures}
 
 
 def build_pipeline(pipeline_config: Dict[str, Dict[str, Any]]):
