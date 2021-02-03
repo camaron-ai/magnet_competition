@@ -67,11 +67,13 @@ class Resnet(SimpleDeepNet):
                  neurons: int = 25,
                  n_layers: int = 1,
                  use_batch_norm: bool = False,
-                 dropout: float = 0.):
+                 dropout: float = 0.,
+                 y_limit: Tuple[float] = None):
         super().__init__(in_features=in_features,
                          out_features=out_features,
                          neurons=neurons, n_layers=n_layers,
-                         use_batch_norm=use_batch_norm, dropout=dropout)
+                         use_batch_norm=use_batch_norm, dropout=dropout,
+                         y_limit=y_limit)
         self.resnet_layer = ResnetLayer(in_features, in_features)
 
     def forward(self, features, target=None):
