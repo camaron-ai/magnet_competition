@@ -31,10 +31,6 @@ def calculate_linreg_features(values: np.array,
             for attr in attrs}
 
 
-def cid_ce(values: np.array):
-    return np.sqrt(np.square(values - np.roll(values, 1))[1:].mean())
-
-
 def calculate_dx_features(values: np.ndarray):
     output = {}
     difference = np.square(values - np.roll(values, 1))[1:]
@@ -46,7 +42,7 @@ def calculate_dx_features(values: np.ndarray):
 
 def time_since_peak(values):
     try:
-        return {'peak': np.nanmax(values),
+        return {'peak': np.nanmax(np.abs(values)),
                 'time_since_peak': 1/60 * np.nanargmax(values[::-1])}
     except ValueError:
         return {}
