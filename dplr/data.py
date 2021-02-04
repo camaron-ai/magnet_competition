@@ -46,3 +46,10 @@ class Dataset(TorchDataset):
 class DataBunch(NamedTuple):
     train_dl: DataLoader
     valid_dl: DataLoader
+
+
+def create_dl(data, device='cpu', batch_size=512,
+              **feature_groups):
+    ds = Dataset.from_dataframe(data, device=device, **feature_groups)
+    dl = DataLoader(ds, batch_size=batch_size)
+    return ds, dl
