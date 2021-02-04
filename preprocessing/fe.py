@@ -52,8 +52,6 @@ def calculate_features(data: pd.DataFrame,
             _complex_features = calculate_linreg_features(values)
             _complex_features['cid_ce'] = cid_ce(values)
             _complex_features.update(consecutive_count_above_below_mean(values))
-            _complex_features['q_0.9'] = np.quantile(values, 0.9)
-            _complex_features['q_0.1'] = np.quantile(values, 0.1)
             complex_features[feature].update(_complex_features)
         features[f'{hours//60}h'] = complex_features
     return join_multiple_dict(features)
