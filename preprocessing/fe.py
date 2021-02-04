@@ -24,8 +24,7 @@ def consecutive_count_above_below_mean(values: np.ndarray):
 
 
 def calculate_linreg_features(values: np.array,
-                              attrs: List[str] = ['slope', 'intercept',
-                                                  'stderr']):
+                              attrs: List[str] = ['slope', 'intercept']):
     linreg = linregress(np.arange(len(values)), values)
     return {attr: getattr(linreg, attr)
             for attr in attrs}
@@ -54,27 +53,26 @@ def calculate_features(data: pd.DataFrame,
     features['timedelta'] = timestep
 
     # mean and std
-    for hours in [1*60, 5*60, 10*60, 48*60]:
+    for hours in [1*60, 5*60, 10*60, 48*60, 96*60]:
         last_hours_data = data.iloc[-hours:, :]
         agg_features = last_hours_data.agg(('mean', 'std')).to_dict()
         features[f'{hours//60}h'] = agg_features
 
     # linear features
-    for feature, values in last_hours_data.items():
+    for feature, values in data.items():
         values = values.dropna()
         if len(values) == 0:
             continue
         for hours in [10*60]:
-            last_hours_data = data.iloc[-hours:, :]
-            linear_properties = calculate_linreg_features(values)
+            last_hour_values = values.iloc[-hours:]
+            linear_properties = calculate_linreg_features(last_hour_values)
             features[f'{hours//60}h'][feature].update(linear_properties)
 
     for hours in [10*60]:
         last_hours_data = data.iloc[-hours:, :]
         for feature, values in last_hours_data.items():
+            abs_values = values.abs()
             dx_features = calculate_dx_features(values)
             dx_features.update(consecutive_count_above_below_mean(values))
-            if feature in ['speed', 'temperature', 'bt']:
-                dx_features.update(time_since_peak(values))
             features[f'{hours//60}h'][feature].update(dx_features)
     return join_multiple_dict(features)

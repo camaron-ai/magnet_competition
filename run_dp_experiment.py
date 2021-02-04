@@ -9,7 +9,8 @@ import mlflow
 import default
 import os
 from metrics import compute_metrics, calculate_error_on_test
-from metrics import compute_metrics_per_period, torch_rmse
+from metrics import compute_metrics_per_period
+import metrics
 from models import library as model_library
 from pipelines import build_pipeline
 from dplr import Learner, predict_dl
@@ -19,6 +20,7 @@ from dplr.callback import ModelCheckpointCallBack
 from dplr.callback.record import MetricRecorderCallBack, Recoder
 from dplr.callback import ProgressBarCallBack
 from dplr.data import DataLoader, Dataset, DataBunch
+from dplr.interpretation import permutation_importance
 
 
 torch.manual_seed(2021)
@@ -124,7 +126,7 @@ def main(experiment_path: str, eval_mode: bool = True,
 
     # creating learner instance
     logging.info('creating learner instance')
-    cbs = [Recoder, MetricRecorderCallBack(torch_rmse),
+    cbs = [Recoder, MetricRecorderCallBack(metrics.torch_rmse),
            ModelCheckpointCallBack, ProgressBarCallBack]
 
     learner = Learner(model, optimizer, bunch, callbacks=cbs)
@@ -175,9 +177,13 @@ def main(experiment_path: str, eval_mode: bool = True,
             # valid_prediction = valid_data.loc[:, default.keep_columns]
             valid_data.to_csv(prediction_path / 'valid.csv', index=False)
             # saving feature importances if there is aviable
-            # fi = feature_importances(model, features)
-            # if (fi is not None):
-            #     fi.to_csv(experiment_path / 'fi.csv', index=False)
+            fi = permutation_importance(model=learner.model,
+                                        data=valid_data,
+                                        features=features,
+                                        target=target_name,
+                                        score_func=metrics.rmse)
+            fi.to_csv(experiment_path / 'fi_h0.csv', index=False)
+            fi.to_csv(experiment_path / 'fi_h1.csv', index=False)
             # saving to mlflow
             # saving metrics
             mlflow.log_metrics(train_error)

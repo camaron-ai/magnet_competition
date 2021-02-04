@@ -46,7 +46,7 @@ class SimpleDeepNet(nn.Module):
 
     def forward(self, features, target=None):
         prediction = self.model(features)
-        if self.use_range is not None:
+        if self.use_range:
             prediction = torch.sigmoid(prediction)
             prediction = prediction * self.range + self.range_bias
         output = {'prediction': prediction}
