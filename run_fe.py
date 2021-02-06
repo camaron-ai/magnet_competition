@@ -9,13 +9,13 @@ import click
 import default
 import warnings
 import numpy as np
+import pandas as pd
 
 warnings.filterwarnings('ignore')
 logger = logging.getLogger(__name__)
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(format=log_fmt,
                     level=logging.INFO)
-
 
 @click.command()
 @click.option('--use_sample', type=click.BOOL, default=False)
@@ -39,6 +39,7 @@ def main(use_sample: bool = False):
 
     logging.info('preprocessing solar wing')
     # preprocessing solar wind
+    # solar_wind = solar_wind[solar_wind['period'] == 'train_a']
     solar_wind.set_index('timedelta', inplace=True)
     solar_wind = solar_wind_preprocessing(solar_wind)
     logging.info('computing features')

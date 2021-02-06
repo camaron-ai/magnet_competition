@@ -72,6 +72,8 @@ def split_data_in_chunks(data: pd.DataFrame,
     one_minute = pd.to_timedelta(1, unit='m')
     output = {}
     for timestep in data.index.ceil('H').unique():
+        if timestep < stride:
+            continue
         output[timestep] = data.loc[timestep-stride: timestep-one_minute, :]
     return output
 
