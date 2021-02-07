@@ -118,6 +118,7 @@ def predict_dst(
     # for every experiment
     # print('start predicting')
     # print(test_data.shape)
+    test_data_e = None
     for experiment, experiment_repo in repo.items():
         # import the models
         # print(f'predicting using experiment {experiment}')
@@ -127,7 +128,8 @@ def predict_dst(
 
         # test_data_e = test_data.copy()
         # print('applying preprocessing pipeline')
-        test_data_e = pipeline.transform(test_data)
+        if test_data_e is None:
+            test_data_e = pipeline.transform(test_data)
         features = sorted([feature for feature in test_data_e.columns
                            if feature not in default.ignore_features])
 

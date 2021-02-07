@@ -3,3 +3,4 @@ parameters:
   n_estimators: 100
   n_jobs: -1
   max_features: 0.8
+  min_samples_leaf: 10
