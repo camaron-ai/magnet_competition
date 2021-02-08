@@ -3,6 +3,7 @@ import torch
 from torch.nn.init import kaiming_normal_
 from typing import Tuple
 
+
 class Linear(nn.Linear):
     "Linear Layer with kaiming normal normalization"
     def __init__(self, in_features: int,

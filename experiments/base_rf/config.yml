@@ -1,0 +1,2 @@
+model: model_config/rf.yml
+pipeline: pipeline_config/base_pipeline.yml
