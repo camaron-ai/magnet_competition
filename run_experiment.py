@@ -24,9 +24,10 @@ logging.basicConfig(format=log_fmt,
 @click.option('--use_sample', type=click.BOOL, default=False)
 @click.option('--test_frac', type=float, default=0.2)
 @click.option('-m', '--message', type=str, default=None)
+@click.option('-fthres', '--fi_threshold', type=float, default=None)
 def main(experiment_path: str, eval_mode: bool = True,
          use_sample: bool = False, test_frac: float = 0.2,
-         message: str = None):
+         message: str = None, fi_threshold: float = None):
     experiment = os.path.basename(experiment_path)
     logging.info(f'running {experiment}')
     logging.info(f'eval_mode={eval_mode}, use_sample={use_sample}')
@@ -71,8 +72,11 @@ def main(experiment_path: str, eval_mode: bool = True,
     train_data = pipeline.transform(train_data)
     valid_data = pipeline.transform(valid_data)
 
-    features = sorted([feature for feature in train_data.columns
-                       if feature not in default.ignore_features])
+    features = load_data.get_features(train_data,
+                                      experiment_path=experiment_path,
+                                      fi_threshold=fi_threshold,
+                                      ignore_features=default.ignore_features)
+    in_features = len(features)
     logging.info(f'modeling using {len(features)} features')
     logging.info(f'{features[:30]}')
 
@@ -129,6 +133,8 @@ def main(experiment_path: str, eval_mode: bool = True,
             # saving metrics
             mlflow.log_metrics(train_error)
             mlflow.log_metrics(valid_error)
+            mlflow.log_params({'fi_threshold': fi_threshold,
+                               'in_features': in_features})
             # saving model parameters
             mlflow.log_params(model_config['parameters'])
             tags = {'use_sample': use_sample,
@@ -147,6 +153,7 @@ def main(experiment_path: str, eval_mode: bool = True,
         joblib.dump(model_h0, model_path / 'model_h0.pkl')
         joblib.dump(model_h1, model_path / 'model_h1.pkl')
         joblib.dump(pipeline, model_path / 'pipeline.pkl')
+        joblib.dump(features, model_path / 'features.pkl')
 
 
 if __name__ == '__main__':

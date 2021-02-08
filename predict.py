@@ -41,10 +41,12 @@ def load_models():
                     if os.path.exists(experiment_path / 'model_h1.pkl')
                     else None)
         pipeline = joblib.load(experiment_path / 'pipeline.pkl')
+        features = joblib.load(experiment_path / 'features.pkl')
         # save it into the experiment's dict
         repo[experiment]['model_h0'] = model_h0
         repo[experiment]['model_h1'] = model_h1
         repo[experiment]['pipeline'] = pipeline
+        repo[experiment]['features'] = features
     # print('complete!')
     return repo
 
@@ -124,13 +126,11 @@ def predict_dst(
         model_h0 = experiment_repo['model_h0']
         model_h1 = experiment_repo['model_h1']
         pipeline = experiment_repo['pipeline']
+        features = experiment_repo['features']
 
         # test_data_e = test_data.copy()
         # print('applying preprocessing pipeline')
         test_data_e = pipeline.transform(test_data)
-        features = sorted([feature for feature in test_data_e.columns
-                           if feature not in default.ignore_features])
-
         pred_at_t0, pred_at_t1 = predict(test_data_e.loc[:, features],
                                          model_h0=model_h0,
                                          model_h1=model_h1)

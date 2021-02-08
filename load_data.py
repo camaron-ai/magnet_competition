@@ -1,6 +1,6 @@
 import yaml
 import os
-from typing import Union, Dict
+from typing import Union, Dict, List
 import pandas as pd
 import numpy as np
 path_type = Union[str, os.PathLike]
@@ -45,3 +45,17 @@ def join_multiple_dict(dict_values: Dict[str, Dict[str, float]]):
         else:
             output[name] = value
     return output
+
+
+def get_features(data: pd.DataFrame, experiment_path: str,
+                 fi_threshold: float = None,
+                 ignore_features: List[str] = []):
+    path_to_fi = experiment_path / 'fi_h0.csv'
+    if (os.path.exists(path_to_fi) and fi_threshold is not None):
+        fi = pd.read_csv(path_to_fi)
+        features = list(fi['feature'][fi['importance'] >= fi_threshold])
+    else:
+        features = sorted([feature for feature in data.columns
+                           if feature not in ignore_features])
+    return features
+

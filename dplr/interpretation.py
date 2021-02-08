@@ -26,7 +26,7 @@ def permutation_importance(model, data,
         feature_score = _score(permuted_data)
         feature_importance = {'feature': feature,
                               'score': feature_score,
-                              'importance': base_score-feature_score,
+                              'importance': feature_score-base_score,
                               }
         fi.append(feature_importance)
     fi = pd.DataFrame(fi)
