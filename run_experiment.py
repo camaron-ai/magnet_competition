@@ -22,7 +22,7 @@ logging.basicConfig(format=log_fmt,
 @click.argument('experiment_path', type=click.Path(exists=True))
 @click.option('--eval_mode', type=click.BOOL, default=True)
 @click.option('--use_sample', type=click.BOOL, default=False)
-@click.option('--test_frac', type=float, default=0.2)
+@click.option('--test_frac', type=float, default=default.valid_size)
 @click.option('-m', '--message', type=str, default=None)
 @click.option('-fthres', '--fi_threshold', type=float, default=None)
 def main(experiment_path: str, eval_mode: bool = True,
@@ -126,7 +126,7 @@ def main(experiment_path: str, eval_mode: bool = True,
             # saving feature importances if there is aviable
             fi_h0 = feature_importances(model_h0, features)
             fi_h1 = feature_importances(model_h1, features)
-            if (fi_h0 is not None) and (fi_h1 is not None):
+            if (fi_h0 is not None) and (fi_h1 is not None) and (fi_threshold is None):
                 fi_h0.to_csv(experiment_path / 'fi_h0.csv', index=False)
                 fi_h1.to_csv(experiment_path / 'fi_h1.csv', index=False)
             # saving to mlflow

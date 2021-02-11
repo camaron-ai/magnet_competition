@@ -1,4 +1,4 @@
-model: model_config/neuronet_100.yml
+model: model_config/bn_base_neuronet.yml
 pipeline: pipeline_config/base_pipeline.yml
 optimizer:
   lr: 0.01

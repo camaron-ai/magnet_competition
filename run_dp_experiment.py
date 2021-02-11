@@ -23,7 +23,8 @@ from dplr.data import DataLoader, Dataset, DataBunch
 from dplr.interpretation import permutation_importance
 
 
-torch.manual_seed(2021)
+torch.manual_seed(120)
+np.random.seed(120)
 logger = logging.getLogger(__name__)
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(format=log_fmt,
@@ -37,7 +38,7 @@ batch_size = 512
 @click.argument('experiment_path', type=click.Path(exists=True))
 @click.option('--eval_mode', type=click.BOOL, default=True)
 @click.option('--use_sample', type=click.BOOL, default=False)
-@click.option('--test_frac', type=float, default=0.2)
+@click.option('--test_frac', type=float, default=default.valid_size)
 @click.option('-m', '--message', type=str, default=None)
 @click.option('-fthres', '--fi_threshold', type=float, default=None)
 def main(experiment_path: str, eval_mode: bool = True,
@@ -137,7 +138,7 @@ def main(experiment_path: str, eval_mode: bool = True,
     logging.info('training model')
     # making model for horizon 0
     epochs = experiment_config.pop('epochs', 10)
-    learner.fit(epochs, seed=2020)
+    learner.fit(epochs)
 
     # avg the last 5 epochs weights
     top_models = np.arange(epochs)[-5:]
@@ -179,14 +180,17 @@ def main(experiment_path: str, eval_mode: bool = True,
                                       index=False)
             # valid_prediction = valid_data.loc[:, default.keep_columns]
             valid_data.to_csv(prediction_path / 'valid.csv', index=False)
-            # saving feature importances if there is aviable
-            fi = permutation_importance(model=learner.model,
-                                        data=valid_data,
-                                        features=features,
-                                        target=target_name,
-                                        score_func=metrics.rmse)
-            fi.to_csv(experiment_path / 'fi_h0.csv', index=False)
-            fi.to_csv(experiment_path / 'fi_h1.csv', index=False)
+
+            if fi_threshold is None:
+                # saving feature importances if there is aviable
+                fi = permutation_importance(model=learner.model,
+                                            data=valid_data,
+                                            features=features,
+                                            target=target_name,
+                                            score_func=metrics.rmse,
+                                            n_jobs=8)
+                fi.to_csv(experiment_path / 'fi_h0.csv', index=False)
+                fi.to_csv(experiment_path / 'fi_h1.csv', index=False)
             # saving to mlflow
             # saving metrics
             mlflow.log_metrics(train_error)

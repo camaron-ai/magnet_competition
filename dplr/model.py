@@ -26,7 +26,8 @@ class SimpleDeepNet(nn.Module):
                  n_layers: int = 1,
                  use_batch_norm: bool = False,
                  dropout: float = 0.,
-                 y_limit: Tuple[float] = None):
+                 y_limit: Tuple[float] = None,
+                 use_init_bn: bool = False):
         super().__init__()
         self.use_range = y_limit is not None
         if self.use_range:
@@ -43,9 +44,14 @@ class SimpleDeepNet(nn.Module):
             if n < n_layers - 1:
                 layers.append(Linear(neurons, neurons))
         layers.append(Linear(neurons, out_features))
+        if use_init_bn:
+            self.init_bn = nn.BatchNorm1d(in_features)
+        self.use_init_bn = use_init_bn
         self.model = nn.Sequential(*layers)
 
     def forward(self, features, target=None):
+        if self.use_init_bn:
+            features = self.init_bn(features)
         prediction = self.model(features)
         if self.use_range:
             prediction = torch.sigmoid(prediction)

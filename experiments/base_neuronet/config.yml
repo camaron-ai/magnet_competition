@@ -1,7 +1,0 @@
-model: model_config/base_neuronet.yml
-pipeline: pipeline_config/base_pipeline.yml
-optimizer:
-  lr: 0.001
-  weight_decay: 0.1
-epochs: 20
-use_sigmoid: False

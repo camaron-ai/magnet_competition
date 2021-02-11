@@ -53,7 +53,7 @@ def get_features(data: pd.DataFrame, experiment_path: str,
     path_to_fi = experiment_path / 'fi_h0.csv'
     if (os.path.exists(path_to_fi) and fi_threshold is not None):
         fi = pd.read_csv(path_to_fi)
-        features = list(fi['feature'][fi['importance'] >= fi_threshold])
+        features = list(fi['feature'][fi['importance'] > fi_threshold])
     else:
         features = sorted([feature for feature in data.columns
                            if feature not in ignore_features])
