@@ -1,4 +1,6 @@
 make_sure_features: {}
 fillnan: {}
+# drop_feature_corr:
+  # threshold: 0.96
 normalize: {}
 to_float32: {}

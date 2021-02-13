@@ -2,6 +2,6 @@ model: model_config/neuronet_100.yml
 pipeline: pipeline_config/base_pipeline.yml
 optimizer:
   lr: 0.01
-  weight_decay: 0.01
+  weight_decay: 0.00005
 epochs: 15
 use_sigmoid: True

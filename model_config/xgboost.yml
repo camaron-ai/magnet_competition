@@ -1,8 +1,5 @@
 instance: 'XGBOOST'
 parameters:
   n_jobs: -1
-  max_depth: 2
-  n_estimators: 1200
-  subsample: 0.4
-  reg_alpha: 0.5
-  gamma: 0.01
+  max_depth: 4
+  n_estimators: 120
