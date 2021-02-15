@@ -22,12 +22,13 @@ from dplr.callback import ProgressBarCallBack
 from dplr.data import DataLoader, Dataset, DataBunch
 from dplr.interpretation import permutation_importance
 
-
+# setting a seed.
 torch.manual_seed(2021)
 logger = logging.getLogger(__name__)
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(format=log_fmt,
                     level=logging.INFO)
+# constant variables
 device = 'cpu'
 target_name = ['t0', 't1']
 batch_size = 512
@@ -43,24 +44,51 @@ batch_size = 512
 def main(experiment_path: str, eval_mode: bool = True,
          use_sample: bool = False, test_frac: float = 0.2,
          message: str = None, fi_threshold: float = None):
+    """
+    A function to train or validate an Experiment
+    # Parameters
+    experiment_path: `str`
+        A path to the folder's experiment config file.
+    eval_mode: `bool`, optional (default=True)
+        if False, the model will be train using all the data available,
+        otherwise, the trained model will be use for inference.
+    use_sample: `bool`, optional (default=False)
+        if True, we will use only a sample from the dataset.
+        to use it, before execute the make_sample.py file
+        to create this sample dataset.
+    test_frac: `float`, optional (default=0.2)
+        if eval_mode is True, the size of the valid dataset
+        will be the {test_frac}% of the main dataset.
+    message: `str`, optional (default=None)
+        we use mlflow to keep track of all parameters and errors of each experiment,
+        this parameter will register any string you pass into the experiment record in mlflow.
+    fi_threshold `float`, optional (default=None)
+        if already exists a feature importance file, this value will be use for filtering
+        the features that has greater importance values than {fi_threshold}.
+    """
+    # getting experiment name
     experiment = os.path.basename(experiment_path)
     logging.info(f'running {experiment}')
     logging.info(f'eval_mode={eval_mode}, use_sample={use_sample}')
-
     logging.info('reading config file')
+    # creating experiment path and loading experiment config file
     experiment_path = Path(experiment_path)
     config = load_data.read_config_file('./config/config.yml')
     experiment_config = load_data.read_config_file(experiment_path / 'config.yml')
+    # reading experiment's model and pipeline config file
     pipeline_config = load_data.read_config_file(experiment_config['pipeline'])
     model_config = load_data.read_config_file(experiment_config['model'])
 
     directories = config['directories']
+    # getting the data path
     data_path = Path(directories['data'])
+    # creating a prediction folder to save prediction after training
     prediction_path = experiment_path / 'prediction'
     prediction_path.mkdir(exist_ok=True, parents=True)
+    # creating a model path to save models after training
     model_path = experiment_path / 'models'
 
-    # reading fe data
+    # reading preprocessed data
     filename = ('fe' if not use_sample else 'fe_sample')
     logging.info('reading training data')
     data = load_data.read_feather(data_path / f'{filename}.feather')
@@ -82,15 +110,21 @@ def main(experiment_path: str, eval_mode: bool = True,
     # fit pipeline
     logging.info('training pipeline')
     pipeline.fit(train_data)
-    # transform
+    # transform both training and valid dataset
     logging.info('transforming datasets')
     train_data = pipeline.transform(train_data)
     valid_data = pipeline.transform(valid_data)
 
+    # getting the bottom and upper limit of the target
+    # in the case we want to use the sigmoid function
+    # as the final activation function of our model
     use_sigmoid = experiment_config.pop('use_sigmoid', False)
     y_limit = ((train_data['t0'].agg(('max', 'min')) * 1.2).to_list()
                if use_sigmoid else None)
 
+    # loading the features to train our model
+    # if exists a feature importance file
+    # we can use it to train our model only with revelant features
     features = load_data.get_features(train_data,
                                       experiment_path=experiment_path,
                                       fi_threshold=fi_threshold,
@@ -104,7 +138,7 @@ def main(experiment_path: str, eval_mode: bool = True,
                                       target=target_name, device=device)
     valid_ds = Dataset.from_dataframe(valid_data, features=features,
                                       target=target_name, device=device)
-
+    # creating dataloaders
     train_dl = DataLoader(dataset=train_ds,
                           batch_size=batch_size,
                           shuffle=True)
@@ -114,11 +148,12 @@ def main(experiment_path: str, eval_mode: bool = True,
     valid_dl = DataLoader(dataset=valid_ds,
                           batch_size=batch_size,
                           shuffle=False)
+    # creating databunch
     bunch = DataBunch(train_dl, valid_dl)
 
-    # importing and init model
+    # importing the model instance
     model_instance = model_library[model_config['instance']]
-
+    # init the model
     model = model_instance(in_features=in_features,
                            out_features=len(target_name),
                            y_limit=y_limit,
@@ -135,8 +170,9 @@ def main(experiment_path: str, eval_mode: bool = True,
     learner = Learner(model, optimizer, bunch, callbacks=cbs)
 
     logging.info('training model')
-    # making model for horizon 0
+    # importing epochs, default is 10
     epochs = experiment_config.pop('epochs', 10)
+    # train the model
     learner.fit(epochs, seed=2020)
 
     # avg the last 5 epochs weights
@@ -144,6 +180,7 @@ def main(experiment_path: str, eval_mode: bool = True,
     learner.modelcheckpoint.load_averaged_model(top_models)
 
     logging.info('prediction h0 and h1 models')
+    # predicting
     valid_output = predict_dl(learner.model, valid_dl)
     train_output = predict_dl(learner.model, not_shuffle_train_dl)
     valid_data[['yhat_t0', 'yhat_t1']] = valid_output['prediction'].numpy()
@@ -205,7 +242,7 @@ def main(experiment_path: str, eval_mode: bool = True,
             if message is not None:
                 tags['message'] = message
             mlflow.set_tags(tags)
-    if not eval_mode:
+    else:
         # creating model path
         test_error = calculate_error_on_test(train_data)
         test_error = pd.DataFrame([test_error])
