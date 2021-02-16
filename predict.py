@@ -22,7 +22,11 @@ logging.basicConfig(format=log_fmt,
 
 
 def load_models():
-    """A function to load everything necessary to make a prediction"""
+    """
+    A function to load everything necessary to make a prediction
+    # Returns
+    Dict[str, Dict[str, Any]]
+    """
     # create a repository to save every artifacts
     repo = defaultdict(dict)
     # define the path where all experiments are
@@ -36,7 +40,6 @@ def load_models():
         print(f'loading experiment {experiment}')
         # load everything need it
         model_h0 = joblib.load(experiment_path / 'model_h0.pkl')
-
         model_h1 = (joblib.load(experiment_path / 'model_h1.pkl')
                     if os.path.exists(experiment_path / 'model_h1.pkl')
                     else None)
@@ -47,47 +50,69 @@ def load_models():
         repo[experiment]['model_h1'] = model_h1
         repo[experiment]['pipeline'] = pipeline
         repo[experiment]['features'] = features
-    # print('complete!')
     return repo
 
 
 repo = load_models()
 
 
-def predict(test_data, model_h0, model_h1=None):
+def predict(test_data: pd.DataFrame, model_h0, model_h1=None):
+    """
+    This function will help us predict and sklearn-typo model
+    or a torch model given the input we provide
+    # Parameters
+    test_data: `pd.DataFrame`
+        A pandas DataFrame
+    model_h0: `Any`
+        A sklearn-typo model or a torch model
+    model_h1: `Any`, optional (defualt=None)
+        A sklearn-typo model or a torch model.
+        If this parameter is not given, we assume the model_h0
+        is a torch model.
+    # Returns
+    predictions: `Tuple[float, float]`
+        A tuple of two predictions, for (t and t + 1 hour) respectively"""
+    # if model_h1 is None, we assume that model_t0 is a pytorch model
+    # which predict both t and t+1 in the same model
     if model_h1 is None:
+        # transform the test_data into a torch.tensor
         tensor_features = torch.from_numpy(test_data.to_numpy())
+        # predict using the torch model
         prediction_output = model_h0(tensor_features)
+        # keep the last predictions only
         prediction = prediction_output['prediction'][-1]
         pred_at_t0, pred_at_t1 = prediction
+        # transform from torch.tensor to float
         pred_at_t0, pred_at_t1 = pred_at_t0.item(), pred_at_t1.item()
     else:
+        # sklearn-typo model will do everything for us
+        # predict and keep the last prediction only.
         pred_at_t0 = model_h0.predict(test_data)[-1]
         pred_at_t1 = model_h1.predict(test_data)[-1]
     return pred_at_t0, pred_at_t1
 
 
-
-def predict_dst(
-    solar_wind_7d: pd.DataFrame,
-    satellite_positions_7d: pd.DataFrame,
-    latest_sunspot_number: float) -> Tuple[float, float]:
+def predict_dst(solar_wind_7d: pd.DataFrame,
+                satellite_positions_7d: pd.DataFrame,
+                latest_sunspot_number: float) -> Tuple[float, float]:
     """
     Take all of the data up until time t-1, and then make predictions for
     times t and t+1.
     Parameters
     ----------
     solar_wind_7d: pd.DataFrame
-        The last 7 days of satellite data up until (t - 1) minutes [exclusive of t]
+        The last 7 days of satellite data up
+        until (t - 1) minutes [exclusive of t]
     satellite_positions_7d: pd.DataFrame
-        The last 7 days of satellite position data up until the present time [inclusive of t]
+        The last 7 days of satellite position data up
+        until the present time [inclusive of t]
     latest_sunspot_number: float
         The latest monthly sunspot number (SSN) to be available
     Returns
     -------
     predictions : Tuple[float, float]
-        A tuple of two predictions, for (t and t + 1 hour) respectively; these should
-        be between -2,000 and 500.
+        A tuple of two predictions, for (t and t + 1 hour)
+        respectively; these should be between -2,000 and 500.
     """
     # make a copy so we dont modify the main dataframe
     solar_wind_7d = solar_wind_7d.copy()
@@ -105,42 +130,36 @@ def predict_dst(
     test_data = one_chunk_to_dataframe(solar_wind_7d, timestep)
     test_data['period'] = 'test'
 
+    # join the satellite_positions_7d dataframe
     satellite_positions_7d.drop(['period', 'timedelta'], axis=1, inplace=True)
     satellite_positions_7d = satellite_positions_7d.tail(1)
     satellite_positions_7d.reset_index(drop=True, inplace=True)
     test_data = pd.concat((test_data, satellite_positions_7d), axis=1)
-
-    # test_data = merge_daily(test_data, satellite_positions_7d)
+    # add the log of the latest_sunspot_number
     test_data["smoothed_ssn"] = np.log(latest_sunspot_number)
-    # print('done')
-    # Make a prediction
-    # init the prediction at 0
+    # init the prediction for t and t + 1
     prediction_at_t0 = 0
     prediction_at_t1 = 0
-    # for every experiment
-    # print('start predicting')
-    # print(test_data.shape)
+    # init a placeholder for the processed data
     test_data_e = None
     for experiment, experiment_repo in repo.items():
-        # import the models
-        # print(f'predicting using experiment {experiment}')
+        # for each experiment, grab everything
+        # we need to make a prediction
         model_h0 = experiment_repo['model_h0']
         model_h1 = experiment_repo['model_h1']
         pipeline = experiment_repo['pipeline']
         features = experiment_repo['features']
-
-        # test_data_e = test_data.copy()
-        # print('applying preprocessing pipeline')
+        # if we already preprocessed the test_data,
+        # dont do it again
         if test_data_e is None:
             test_data_e = pipeline.transform(test_data)
 
+        # predict and sum it to the total prediction
         pred_at_t0, pred_at_t1 = predict(test_data_e.loc[:, features],
                                          model_h0=model_h0,
                                          model_h1=model_h1)
-        # predict and sum it to the total prediction
         prediction_at_t0 += pred_at_t0
         prediction_at_t1 += pred_at_t1
-        # print('done')
     # divide by the number of experiments
     prediction_at_t0 /= len(repo)
     prediction_at_t1 /= len(repo)
