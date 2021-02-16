@@ -2,7 +2,6 @@ from sklearn.linear_model import LinearRegression, Lasso
 from lightgbm import LGBMRegressor
 from sklearn.ensemble import RandomForestRegressor
 from dplr.model import SimpleDeepNet, Resnet
-# from xgboost import XGBRegressor
 
 library = {'LR': LinearRegression,
            'LGBM': LGBMRegressor,
@@ -10,5 +9,3 @@ library = {'LR': LinearRegression,
            'LASSO': Lasso,
            'simple_deep_net': SimpleDeepNet,
            'resnet': Resnet}
-        #    'XGBOOST': XGBRegressor}
-
