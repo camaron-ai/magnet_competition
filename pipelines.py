@@ -1,24 +1,11 @@
 from typing import Dict, Any
-from preprocessing.transformer import DropFeatureByCorr
-from preprocessing.transformer import DropFeaturesByCorrTarget
-from preprocessing.transformer import Lagger
-from preprocessing.transformer import RollingStats
 from preprocessing.transformer import NoOp, FeatureFilter
-from preprocessing.transformer import DifferenceFeatures
-from preprocessing.transformer import Fourier, CustomPCA
 from preprocessing.transformer import Normalize, ToDtype, FillNaN
 from preprocessing.transformer import MakeSureFeatures
 from sklearn.pipeline import Pipeline
 
 
-library = {'drop_feature_corr': DropFeatureByCorr,
-           'drop_feature_target': DropFeaturesByCorrTarget,
-           'lagger': Lagger,
-           'rolling_stats': RollingStats,
-           'difference': DifferenceFeatures,
-           'fourier': Fourier,
-           'pca': CustomPCA,
-           'feature_filter': FeatureFilter,
+library = {'feature_filter': FeatureFilter,
            'normalize': Normalize,
            'to_float32': ToDtype,
            'fillnan': FillNaN,
