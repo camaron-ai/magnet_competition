@@ -5,6 +5,9 @@ from preprocessing.transformer import MakeSureFeatures
 from sklearn.pipeline import Pipeline
 
 
+
+# each transformer has a unique key that we can
+# address with this dictionary
 library = {'feature_filter': FeatureFilter,
            'normalize': Normalize,
            'to_float32': ToDtype,
@@ -12,7 +15,31 @@ library = {'feature_filter': FeatureFilter,
            'make_sure_features': MakeSureFeatures}
 
 
-def build_pipeline(pipeline_config: Dict[str, Dict[str, Any]]):
+def build_pipeline(pipeline_config: Dict[str, Dict[str, Any]]) -> Pipeline:
+    """
+    A function to build a pipeline from a config file
+    # Params
+    pipeline_config: `Dict[str, Dict[str, Any]]`
+        A OrderedDict of dictionaries where each key is string from
+        the library dict define above, and its value is a dictionary of
+        valid parameters for the choosen transformer class.
+        structure:
+            {'name_of_the_pipeline': parameters}
+            name_of_the_pipeline: a key in the pipeline library dict define above
+            parameters: this must be dictionary with valid parameters values
+
+    # Example
+    >>> pipeline_config = {'normalize': {},  # no parameters needit
+                           'to_float32': {}, # no parameters needit
+                           }
+    >>> build_pipeline(pipeline_config)
+    Pipeline(steps=[('normalize', Normalize()),
+                    ('to_float32', ToDtype())])
+
+    # Returns
+    Pipeline:
+        A full parametrized sklearn Pipeline
+    """
     if len(pipeline_config) == 0:
         return Pipeline(steps=[('no_op', NoOp())])
     steps = []
@@ -20,11 +47,3 @@ def build_pipeline(pipeline_config: Dict[str, Dict[str, Any]]):
         pipeline_instance = library[pipeline_name]
         steps.append((pipeline_name, pipeline_instance(**pipeline_config)))
     return Pipeline(steps=steps)
-
-
-def set_common_params(pipeline, **kargs):
-    params = {f'{step}__{name}': value
-              for step, transformer in pipeline.named_steps.items()
-              for name, value in kargs.items()
-              if name in transformer.get_params()}
-    pipeline.set_params(**params)
