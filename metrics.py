@@ -5,6 +5,10 @@ import torch.nn.functional as F
 
 
 def to_numpy(function):
+    """
+    A decorator for transforming the input
+    of a function from pandas dataframes to numpy arrays
+    """
     def _inner(*arrays):
         new_arrays = [array.to_numpy()
                       if isinstance(array, pd.DataFrame)
@@ -49,10 +53,6 @@ def feature_importances(model, features):
     fi.sort_values(by='importance', ascending=False, inplace=True)
     fi.reset_index(drop=True, inplace=True)
     return fi
-
-
-def make_error_plot(prediction: pd.DataFrame):
-    pass
 
 
 def compute_metrics_per_period(data, target='t',
