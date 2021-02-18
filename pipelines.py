@@ -5,9 +5,9 @@ from preprocessing.transformer import MakeSureFeatures
 from sklearn.pipeline import Pipeline
 
 
-
-# each transformer has a unique key that we can
-# address with this dictionary
+# to use a pipeline from a config file,
+# the instance must be imported in this file
+# and add it to the dictionary with a unique key
 library = {'feature_filter': FeatureFilter,
            'normalize': Normalize,
            'to_float32': ToDtype,
