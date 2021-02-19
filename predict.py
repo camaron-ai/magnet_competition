@@ -4,8 +4,7 @@ from pathlib import Path
 import os
 from typing import Tuple
 from preprocessing.base import solar_wind_preprocessing
-from preprocessing.base import stl_preprocessing
-from preprocessing.base import merge_daily, one_chunk_to_dataframe
+from preprocessing.base import stl_preprocessing, one_chunk_to_dataframe
 import logging
 import joblib
 import default

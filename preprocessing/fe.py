@@ -239,7 +239,7 @@ def calculate_features(data: pd.DataFrame,
     values: `pd.DataFrame`
         A pandas dataframe, we assume that every column is a time series
     timestep: `timedelta`
-        target timedelta
+        A valid timedelta value
     # Returns
     Dict[str, float]
         A dictionary with all computed features for all timeseries.
