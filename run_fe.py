@@ -17,11 +17,26 @@ log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(format=log_fmt,
                     level=logging.INFO)
 
+
 @click.command()
 @click.option('--use_sample', type=click.BOOL, default=False)
 def main(use_sample: bool = False):
+    """
+    This function will apply all the steps in order to create
+    a dataset ready to train models.
+    The following steps:
+        - read the data
+        - compute the solar wind features
+        - compute sattelite positions features
+        - take the log of smoothed_ssn values
+        - create the target for the actual time t and t + 1 hour
+        - merge all dataset into a single one
+        - save the dataset for future modeling
+    # Params
+    use_sample: `bool`, optional(defualt=False)
+        Whether or not to use the sample dataset
+    """
     logging.info(f'use_sample={use_sample}')
-    # use_sample=True
     logging.info('reading config file')
     config = load_data.read_config_file('./config/config.yml')
     # directories
@@ -39,30 +54,38 @@ def main(use_sample: bool = False):
 
     logging.info('preprocessing solar wing')
     # preprocessing solar wind
-    # solar_wind = solar_wind[solar_wind['period'] == 'train_a']
+    # setting timedelta as index
     solar_wind.set_index('timedelta', inplace=True)
+    # preprocessing solar wind time series
     solar_wind = solar_wind_preprocessing(solar_wind)
     logging.info('computing features')
     start = time.time()
+    # computing solar wind features
     data = split_into_period(solar_wind,
                              features=default.init_features,
                              n_jobs=8)
     elapsed_time = (time.time()-start)/60
     logging.info(f'elapsed time {elapsed_time:.4f}')
 
-    # create target
     logging.info('merging other datasets')
+    # create target
     target = create_target(dst_labels)
+    # preprocessing sattelite positions
     stl_pos = stl_preprocessing(stl_pos)
+    # taking the log of smoothed_ssn values
     sunspots['smoothed_ssn'] = np.log(sunspots['smoothed_ssn'])
+    # merging dataframes to the main dataframe
     data = merge_daily(data, stl_pos)
     data = merge_daily(data, sunspots)
-
+    # merging target dataframe to the main dataframe
     data = data.merge(target, how='left', on=['period', 'timedelta'])
+    # droping last values where there is not available data
     data.dropna(subset=['t0', 't1'], inplace=True)
+    # reset index
     data.reset_index(inplace=True, drop=True)
     logging.info('saving')
     output_filename = 'fe' if not use_sample else 'fe_sample'
+    # saving to feather format
     data.to_feather(f'training_data/{output_filename}.feather')
 
 
