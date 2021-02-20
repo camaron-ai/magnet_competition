@@ -53,7 +53,7 @@ in resumen, this command will:
 
 after running the commands, you should have these files:
 
-```
+```text
 data/interim/
 ├──  solar_wind.feather
 data/processed/
@@ -121,7 +121,7 @@ The script will create a CSV file as below:
 
 this CSV file will be save in the following path:
 
-```
+```text
 experiments/
 ├──  ensemble_summary.csv
 ```
