@@ -1,5 +1,5 @@
 # data to feather
-python to_feather.py;
+python src/to_feather.py;
 
 # run prerpocessing
-python run_fe.py;
+python src/run_fe.py;

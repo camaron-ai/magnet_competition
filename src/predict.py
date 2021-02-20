@@ -8,10 +8,6 @@ import joblib
 from collections import defaultdict
 import warnings
 import torch
-import sys
-# adding src to the python path
-# to import our custom modules
-sys.path.append('./src/')
 from preprocessing.base import solar_wind_preprocessing
 from preprocessing.base import stl_preprocessing, one_chunk_to_dataframe
 import default
@@ -178,7 +174,6 @@ def predict_dst(solar_wind_7d: pd.DataFrame,
 
 
 if __name__ == '__main__':
-    # We use this code for testing
     import load_data
     import time
     data_path = Path('training_data/')
