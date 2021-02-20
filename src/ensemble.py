@@ -139,7 +139,7 @@ def main(upto):
     # print the top 10 models
     print(results.head(10))
     # save the ensemble results in a CSV file
-    results.to_csv('ensemble.csv', index=False)
+    results.to_csv(path / 'ensemble_summary.csv', index=False)
 
 
 if __name__ == '__main__':
