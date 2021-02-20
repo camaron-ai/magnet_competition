@@ -20,7 +20,9 @@ logging.basicConfig(format=log_fmt,
 
 @click.command()
 @click.option('--use_sample', type=click.BOOL, default=False)
-def main(use_sample: bool = False):
+@click.option('--n_jobs', type=click.int, default=1)
+def main(use_sample: bool = False,
+         n_jobs: int = 1):
     """
     This function will apply all the steps in order to create
     a dataset ready to train models.
@@ -35,6 +37,9 @@ def main(use_sample: bool = False):
     # Params
     use_sample: `bool`, optional(defualt=False)
         Whether or not to use the sample dataset
+    n_jobs: `in`, optional(defualt=1)
+        The number of jobs to run in parallel
+
     """
     logging.info(f'use_sample={use_sample}')
     logging.info('reading config file')
@@ -63,7 +68,7 @@ def main(use_sample: bool = False):
     # computing solar wind features
     data = split_into_period(solar_wind,
                              features=default.init_features,
-                             n_jobs=8)
+                             n_jobs=n_jobs)
     elapsed_time = (time.time()-start)/60
     logging.info(f'elapsed time {elapsed_time:.4f}')
 
