@@ -18,8 +18,10 @@ conda activate magnet
 if you are using pip then run:
 
 ```bash
-conda env create -f environment.yml
-source activate magnet
+pip install virtualenv
+virtualenv magnet
+source magnet/bin/activate
+pip install -r requirements.txt
 ```
 
 ### Download the Data
@@ -60,7 +62,17 @@ data/processed/
 ├──  fe.feather
 ```
 
-this step may take sometime because the solar wind data is very large and we tried to simulate the evaluation process where we predict each timedelta at a time. It is important to use multiple cores to speed things up.
+this step may take sometime because the solar wind data is very large and we tried to simulate the evaluation process where we predict each timedelta at a time. It is important to use the multiple cores to speed things up.
+
+If you want to run the preprocessing on a sample dataset, run commands below.
+
+```bash
+python src/to_feather.py
+python src/make_sample.py --frac {frac}
+python src/run_fe.py --n_jobs {n_jobs} --use_sample True
+```
+
+Where the frac parameter represents the proportion of the dataset to include on the sample dataset.
 
 ## (2) Train and Validate Experiments
 
@@ -76,12 +88,18 @@ We compute a lot of features and most of them are useless or redundant, that's w
 
 This approach helped us to reduce overfit, improve our validation score and reduce the complexity of our model.
 
-### Running Models
+### Running Experiments
 
 to run all the steps above, run the following command:
 
 ```bash
 bash commands/train_and_validate.sh
+```
+
+to run it on the sample dataset:
+
+```bash
+bash commands/train_and_validate.sh --use_sample True
 ```
 
 for each of the model, this command will:
@@ -103,13 +121,11 @@ We save more information about the training and scores, this additional informat
 
 ### Ensemble
 
-Once you have trained all experiments, the next step is to look how much the score improve by ensembling, we approach this by finding the subset of experiments that has the best ensemble score. We do this by executing the ensemble.py script:
+Once you have trained all experiments, the next step is to look how much the score improve by ensembling, We do this by executing the ensemble.py script:
 
 ```bash
-python src/ensemble.py --upto {upto}
+python src/ensemble.py
 ```
-
-where the upto parameter is the maximum number of experiments that can be ensemble. the defualt value is equal to the number of experiments in the experiments/ folder, in other words, it will compute the ensemble score for every possible subset. Our solution is compose only for 3 models so there is not need for specifying the upto parameter, nevertheless, it is important when the number of experiment is bigger because it may take a lot of time to run.
 
 The script will create a CSV file as below:
 |   h0_rmse |   h1_rmse |    rmse | experiment                                |   n_model |
