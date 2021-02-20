@@ -31,9 +31,7 @@ def ensemble(data: pd.DataFrame,
 
 
 def main():
-    """
-    Ensemble All models inside the experiments folder
-        """
+    """Ensemble all models inside the experiments folder"""
     # we assume all the experiments are saved
     # in the experiments folder
     path = Path('experiments')
