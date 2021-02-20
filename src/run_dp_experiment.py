@@ -81,7 +81,7 @@ def main(experiment_path: str, eval_mode: bool = True,
 
     directories = config['directories']
     # getting the data path
-    data_path = Path(directories['data'])
+    processed_path = Path(directories['processed'])
     # creating a prediction folder to save prediction after training
     prediction_path = experiment_path / 'prediction'
     prediction_path.mkdir(exist_ok=True, parents=True)
@@ -91,7 +91,7 @@ def main(experiment_path: str, eval_mode: bool = True,
     # reading preprocessed data
     filename = ('fe' if not use_sample else 'fe_sample')
     logging.info('reading training data')
-    data = load_data.read_feather(data_path / f'{filename}.feather')
+    data = load_data.read_feather(processed_path / f'{filename}.feather')
 
     logging.info('splitting dataset')
     train_idx, valid_idx = load_data.split_train_data(data,

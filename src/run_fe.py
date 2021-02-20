@@ -46,16 +46,19 @@ def main(use_sample: bool = False,
     config = load_data.read_config_file('./config/config.yml')
     # directories
     directories = config['directories']
-    data_path = Path(directories['data'])
+    raw_path = Path(directories['raw'])
+    interim_path = Path(directories['interim'])
+    processed_path = Path(directories['processed_path'])
+    processed_path.mkdir(exist_ok=True, parents=True)
 
     # reading gt data
     solar_wind_file = ('sample_solar_wind.feather'
                        if use_sample else 'solar_wind.feather')
     logging.info('reading training data')
-    dst_labels = load_data.read_csv(data_path / 'dst_labels.csv')
-    solar_wind = load_data.read_feather(data_path / solar_wind_file)
-    sunspots = load_data.read_csv(data_path / 'sunspots.csv')
-    stl_pos = load_data.read_csv(data_path / 'satellite_positions.csv')
+    dst_labels = load_data.read_csv(raw_path / 'dst_labels.csv')
+    solar_wind = load_data.read_feather(interim_path / solar_wind_file)
+    sunspots = load_data.read_csv(raw_path / 'sunspots.csv')
+    stl_pos = load_data.read_csv(raw_path / 'satellite_positions.csv')
 
     logging.info('preprocessing solar wing')
     # preprocessing solar wind
@@ -91,7 +94,7 @@ def main(use_sample: bool = False,
     logging.info('saving')
     output_filename = 'fe' if not use_sample else 'fe_sample'
     # saving to feather format
-    data.to_feather(f'training_data/{output_filename}.feather')
+    data.to_feather(processed_path / f'{output_filename}.feather')
 
 
 if __name__ == '__main__':

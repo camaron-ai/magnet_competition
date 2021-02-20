@@ -1,3 +1,5 @@
 # main config file.
 directories:
-  data: ./training_data/
+  raw: ./data/raw/
+  processed: ./data/processed/
+  interim: ./data/interim
