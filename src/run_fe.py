@@ -20,7 +20,7 @@ logging.basicConfig(format=log_fmt,
 
 @click.command()
 @click.option('--use_sample', type=click.BOOL, default=False)
-@click.option('--n_jobs', type=click.int, default=1)
+@click.option('--n_jobs', type=int, default=1)
 def main(use_sample: bool = False,
          n_jobs: int = 1):
     """
@@ -41,14 +41,14 @@ def main(use_sample: bool = False,
         The number of jobs to run in parallel
 
     """
-    logging.info(f'use_sample={use_sample}')
+    logging.info(f'use_sample={use_sample}, n_jobs={n_jobs}')
     logging.info('reading config file')
     config = load_data.read_config_file('./config/config.yml')
     # directories
     directories = config['directories']
     raw_path = Path(directories['raw'])
     interim_path = Path(directories['interim'])
-    processed_path = Path(directories['processed_path'])
+    processed_path = Path(directories['processed'])
     processed_path.mkdir(exist_ok=True, parents=True)
 
     # reading gt data
