@@ -1,7 +1,7 @@
 # NOAA Challenge 3rd Place Solution
 
 Welcome to the 3rd place solution for the [MagNet: Model the Geomagnetic Field](https://www.drivendata.org/competitions/73/noaa-magnetic-forecasting/) competition.
-This repository contains everything neccesary to replicate our solution.
+This repository contains everything needed to replicate our solution.
 
 ## (0) Getting started
 
@@ -28,7 +28,7 @@ First, **download the data** from the competition [download page](https://www.dr
 and put each file in the `data/raw/` folder. After you get the data, you should have
 these files:
 
-```dir
+```text
 data/raw/
 ├── dst_labels.csv
 ├── satellite_positions.csv
@@ -46,9 +46,9 @@ bash commands/compute_dataset.sh --n_jobs {n_jobs}
 
 where n_jobs is the number of jobs to run in parallel. the default value is 1
 
-in resumen, this command will:
+this command will:
 
-- save the solar wind CSV file as a Feather file.
+- Save the solar wind CSV file as a Feather file.
 - Apply the feature engineering pipeline to the time series
 
 after running the commands, you should have these files:
@@ -68,7 +68,7 @@ this step may take sometime because the solar wind data is very large and we tri
 
 Our solution is an ensemble of 3 models, 1 LGBM and 2 feed-forward neuronets with dropout and batch normalization, you can find the specific parameters of such models in the models_config/ folder. In the case of the LGBM we train 2 models, one for each horizon (t and t + 1 hour) but for the feed-forward neuronet we train only one model.
 
-We compute a lot of features and most of then are useless or redundant, that's why for each model we do:
+We compute a lot of features and most of them are useless or redundant, that's why for each model we:
 
 - Train the model with all features
 - Calculate the feature importance

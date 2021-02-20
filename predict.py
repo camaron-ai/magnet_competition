@@ -27,7 +27,7 @@ logging.basicConfig(format=log_fmt,
 
 def load_models():
     """
-    A function to load everything necessary to make a prediction
+    A function to load everything needed to make a prediction
     # Returns
     Dict[str, Dict[str, Any]]
     """
@@ -70,7 +70,7 @@ def predict(test_data: pd.DataFrame, model_h0, model_h1=None):
     model_h0: `Any`
         A sklearn-typo model or a torch model
     model_h1: `Any`, optional (defualt=None)
-        A sklearn-typo model or a torch model.
+        A sklearn-typo model.
         If this parameter is not given, we assume the model_h0
         is a torch model.
     # Returns
