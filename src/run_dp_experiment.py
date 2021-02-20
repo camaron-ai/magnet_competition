@@ -49,6 +49,20 @@ def main(experiment_path: str, eval_mode: bool = True,
     # Parameters
     experiment_path: `str`
         A path to the folder's experiment config file.
+        the config file must be named config.yml and
+        it must contain the following keys:
+            model: `str`
+                the path to the model config file
+            pipeline: `str`
+                the path to the pipeline config file
+            optimizer: `Dict[str, Any]`
+                the parameters for the Adam optimizer
+            epochs: `int`, optinal(default=10)
+                the number of epochs to train the model
+            use_sigmoid: `bool`, optional(defualt=False)
+                Whether or not to use as the final activation
+                function of the model
+
     eval_mode: `bool`, optional (default=True)
         if False, the model will be train using all the data available,
         otherwise, the trained model will be use for inference.
