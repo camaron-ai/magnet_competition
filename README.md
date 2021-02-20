@@ -131,9 +131,7 @@ The script will create a CSV file as below:
 |   h0_rmse |   h1_rmse |    rmse | experiment                                |   n_model |
  |----------:|----------:|--------:|:------------------------------------------|----------:|
  |   9.54384 |   9.57683 | 9.56035 | lgbm_1200__neuronet_100__sigmoid_neuronet |         3 |
- |   9.61142 |   9.69147 | 9.65153 | lgbm_1200__neuronet_100                   |         2 |
- |   9.68632 |   9.68409 | 9.6852  | lgbm_1200__sigmoid_neuronet               |         2 |
- |   9.739   |   9.77314 | 9.75608 | neuronet_100__sigmoid_neuronet            |         2 |
+
 
 this CSV file will be save in the following path:
 
