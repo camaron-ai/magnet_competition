@@ -15,6 +15,13 @@ logging.basicConfig(format=log_fmt,
 @click.command()
 @click.option('--frac', type=click.FLOAT, default=default_sample_frac)
 def main(frac: float = default_sample_frac):
+    """
+    Creates a sample of the solar wind data and saves it.
+    # Parameters
+    frac: `float`
+        should be between 0.0 and 1.0 and represent the proportion
+        of the dataset to include on the sample dataset.
+    """
     logging.info(f'making sample of {frac}%')
     logging.info('reading config file')
     config = load_data.read_config_file('./config/config.yml')
