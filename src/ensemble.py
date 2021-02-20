@@ -129,7 +129,7 @@ def main(upto):
         assert target_ensemble[default.yhat].isna().sum().sum() == 0
         # compute the metrics
         combination_metric = compute_metrics(target_ensemble)
-        combination_metric['experiment'] = '_'.join(combination)
+        combination_metric['experiment'] = '__'.join(combination)
         combination_metric['n_model'] = len(combination)
         results.append(combination_metric)
         print(combination_metric)
