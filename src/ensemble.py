@@ -4,11 +4,9 @@ from pathlib import Path
 import load_data
 import default
 import logging
-import click
 import os
 from typing import List
 from metrics import compute_metrics
-from itertools import combinations
 
 logger = logging.getLogger(__name__)
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -32,57 +30,9 @@ def ensemble(data: pd.DataFrame,
     return ensemble_pred
 
 
-def every_combination(combination: List[str], start: int = 2,
-                      upto: int = None):
+def main():
     """
-    This function is use to compute every possible combination
-    for a list of values.
-    Be careful of using this function without specifyng the upto parameter,
-    because the function will produce a output of the following lenght
-    (n choose {start}) + (n choose {start} + 1) + ... + (n choose {len(combination) - 1})) + 1
-    and depending of the lenght of the input this number can reach high values.
-
-    # Parameters
-    combination: `List[str]`
-        A list of all possible values
-    start: `int`, optional(default=2)
-        minimum lenght of the subsequence
-    upto: `int`, optional(defualt=None)
-        maximum lenght of the subsequence
-
-    # Returns
-    List[Tuple[str]]: List of all possible combination
-
-    # Example
-    >>> list_of_values = ['hello', 'world', '!']
-    >>> all_combination = every_combination(list_of_values)
-    >>> all_combination
-    [('hello', 'world'), ('world', '!'),
-     ('hello', '!'), ('hello', 'world', '!')]
-    >>> possible_2_combination = every_combination(list_of_values, upto=2)
-    >>> possible_2_combination
-    [('hello', 'world'), ('world', '!'), ('hello', '!')]
-    """
-    # if upto is not given
-    # we will compute every possible combination up to len(combination)
-    if upto is None:
-        upto = len(combination)
-    output = []
-    # compute every combination
-    for r in range(start, upto + 1):
-        output += list(combinations(combination, r))
-    return output
-
-
-@click.command()
-@click.option('--upto', default=None, type=int)
-def main(upto):
-    """
-    A function to find which experiments we have to ensemble
-    to get the best score.
-    # Parameters
-    upto: `int`, optional (defualt=None)
-        maximum number of models to ensemble
+    Ensemble All models inside the experiments folder
         """
     # we assume all the experiments are saved
     # in the experiments folder
@@ -106,38 +56,28 @@ def main(upto):
         predictions.append(pred_exp)
     # concat all the predictions
     predictions = pd.concat(predictions)
-    predictions.set_index('experiment', inplace=True)
     # create the target by dropping all duplicates
     target = predictions.drop_duplicates(subset=['period',
                                          'timedelta'])
     target.reset_index(drop=True, inplace=True)
     target.drop(columns=default.yhat, inplace=True)
 
-    results = []
-    # compute every experiment combination possible
-    for combination in every_combination(predictions.index.unique(),
-                                         upto=upto):
-        # get the predictions for this specific combination
-        predictions_combination = predictions.loc[list(combination)]
-        # ensemble
-        predictions_ensemble = ensemble(predictions_combination)
-        # join the predictions to the target file
-        target_ensemble = target.merge(predictions_ensemble,
-                                       on=['period', 'timedelta'],
-                                       how='left')
-        # check there is non nan values
-        assert target_ensemble[default.yhat].isna().sum().sum() == 0
-        # compute the metrics
-        combination_metric = compute_metrics(target_ensemble)
-        combination_metric['experiment'] = '__'.join(combination)
-        combination_metric['n_model'] = len(combination)
-        results.append(combination_metric)
-        print(combination_metric)
-    results = pd.DataFrame(results)
-    # sort by the rmse error
-    results.sort_values(by='rmse', inplace=True)
-    # print the top 10 models
-    print(results.head(10))
+    # ensemble
+    predictions_ensemble = ensemble(predictions)
+
+    target_ensemble = target.merge(predictions_ensemble,
+                                   on=['period', 'timedelta'],
+                                   how='left')
+    # check there is non nan values
+    assert target_ensemble[default.yhat].isna().sum().sum() == 0
+    # compute the metrics
+    ensemble_metrics = compute_metrics(target_ensemble)
+    experiment_list = list(predictions['experiment'].unique())
+    ensemble_metrics['experiment'] = '__'.join(experiment_list)
+    ensemble_metrics['n_model'] = len(experiment_list)
+    results = pd.DataFrame([ensemble_metrics])
+    # print scores
+    print(results.head())
     # save the ensemble results in a CSV file
     results.to_csv(path / 'ensemble_summary.csv', index=False)
 
