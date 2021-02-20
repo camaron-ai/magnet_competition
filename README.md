@@ -7,21 +7,11 @@ This repository contains everything needed to replicate our solution.
 
 ### Prerequisites
 
-You can install all neccesary dependecies on your own machines with conda (highly recommended) or with pip.
-if you are using Anaconda then run:
+You can install all neccesary dependecies on your own machines with conda running the commands below.
 
 ```bash
 conda env create -f environment.yml
 conda activate magnet
-```
-
-if you are using pip then run:
-
-```bash
-pip install virtualenv
-virtualenv magnet
-source magnet/bin/activate
-pip install -r requirements.txt
 ```
 
 ### Download the Data
@@ -62,9 +52,9 @@ data/processed/
 ├──  fe.feather
 ```
 
-this step may take sometime because the solar wind data is very large and we tried to simulate the evaluation process where we predict each timedelta at a time. It is important to use the multiple cores to speed things up.
+this step may take sometime because the solar wind data is very large and we tried to simulate the evaluation process where we predict each timedelta at a time. It is important to use multiple cores to speed things up.
 
-If you want to run the preprocessing on a sample dataset, run commands below.
+If you want to run the preprocessing on a sample dataset, run the commands below.
 
 ```bash
 python src/to_feather.py
@@ -80,7 +70,7 @@ Where the frac parameter represents the proportion of the dataset to include on 
 
 Our solution is an ensemble of 3 models, 1 LGBM and 2 feed-forward neuronets with dropout and batch normalization, you can find the specific parameters of such models in the models_config/ folder. In the case of the LGBM we train 2 models, one for each horizon (t and t + 1 hour) but for the feed-forward neuronet we train only one model.
 
-We compute a lot of features and most of them are useless or redundant, that's why for each model we:
+We compute a lot of features and most of them are redundant, that's why for each model we:
 
 - Train the model with all features
 - Calculate the feature importance
@@ -131,7 +121,6 @@ The script will create a CSV file as below:
 |   h0_rmse |   h1_rmse |    rmse | experiment                                |   n_model |
  |----------:|----------:|--------:|:------------------------------------------|----------:|
  |   9.54384 |   9.57683 | 9.56035 | lgbm_1200__neuronet_100__sigmoid_neuronet |         3 |
-
 
 this CSV file will be save in the following path:
 
