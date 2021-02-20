@@ -1,7 +1,7 @@
 # NOAA Challenge 3rd Place Solution
 
 Welcome to the 3rd place solution for the [MagNet: Model the Geomagnetic Field](https://www.drivendata.org/competitions/73/noaa-magnetic-forecasting/) competition.
-This repository contains everything needed to replicate our solution.
+This repository contains everything needed to replicate our solution. Team LosExtraterrestres
 
 ## (0) Getting started
 
