@@ -1,3 +1,0 @@
-instance: 'LGBM'
-parameters:
-  random_state: 2020

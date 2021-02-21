@@ -1,5 +1,0 @@
-instance: 'XGBOOST'
-parameters:
-  n_jobs: -1
-  max_depth: 4
-  n_estimators: 120
