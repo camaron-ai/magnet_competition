@@ -86,7 +86,7 @@ def fourier_coefficients(values):
     This function will calculate the fast fourier transform
     of the time series and extract the mean and std for both the
     real and imaginary parts. Also, it computes the mean, std
-    and the 0.1, 0.5 and 0.9 quantiles of the power spectrum.
+    and the 10%, 50% and 90% percentiles of the power spectrum.
     # Params
     values: `np.array`
         time series values
@@ -134,7 +134,7 @@ def time_iter(data, periods):
 def point_in_range(values, mean: float, std: float, p: float = 1.96):
     """
     Returns the length of the longest consecutive subsequence in values
-    that are higher than (mean - p*std) and lower than (mean + p*std)
+    that that lies within p standard deviations away from the mean
 
     # Params
     values: `np.array`
