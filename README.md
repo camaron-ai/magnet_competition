@@ -68,7 +68,7 @@ Where the frac parameter represents the proportion of the dataset to include on 
 
 ### Solution Overview
 
-Our solution is an ensemble of 3 models, 1 LGBM and 2 feed-forward neuronets with dropout and batch normalization, you can find the specific parameters of such models in the models_config/ folder. In the case of the LGBM we train 2 models, one for each horizon (t and t + 1 hour) but for the feed-forward neuronet we train only one model.
+Our solution is an ensemble of 3 models, 1 LGBM and 2 feed-forward neuronets with dropout and batch normalization, you can find the specific parameters of such models in the models_config/ folder. In the case of the LGBM we train 2 models, one for each horizon (t and t + 1 hour) but for the feed-forward neuronet we only train one model.
 
 We compute a lot of features and most of them are redundant, that's why for each model we:
 
@@ -76,7 +76,7 @@ We compute a lot of features and most of them are redundant, that's why for each
 - Calculate the feature importance
 - Train the model again but this time only with important features
 
-This approach helped us to reduce overfit, improve our validation score and reduce the complexity of our model.
+This approach helps us to reduce overfit, improve our validation score and reduce the complexity of our models.
 
 ### Running Experiments
 

@@ -81,7 +81,7 @@ def calculate_dx_features(values: np.ndarray):
     return output
 
 
-def fourier_coefficients(values):
+def compute_fourier_stats(values):
     """
     This function will calculate the fast fourier transform
     of the time series and extract the mean and std for both the
@@ -226,7 +226,7 @@ def _calculate_features(values: pd.Series,
     for hours, last_n_values in time_iter(imputed_values, fourier_periods):
         # pd.series to np.ndarray
         last_n_values = last_n_values.to_numpy()
-        fourier_features = fourier_coefficients(last_n_values)
+        fourier_features = compute_fourier_stats(last_n_values)
         feature_dict[f'{hours//60}h'].update(fourier_features)
     return feature_dict
 
