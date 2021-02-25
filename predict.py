@@ -181,11 +181,12 @@ if __name__ == '__main__':
     # We use this code for testing
     import load_data
     import time
-    data_path = Path('training_data/')
-    dst_labels = load_data.read_csv(data_path / 'dst_labels.csv')
-    solar_wind = load_data.read_feather(data_path / 'solar_wind.feather')
-    sunspots = load_data.read_csv(data_path / 'sunspots.csv')
-    stl_pos = load_data.read_csv(data_path / 'satellite_positions.csv')
+    raw_path = Path('data/raw/')
+    interim_path = Path('data/interim')
+    dst_labels = load_data.read_csv(raw_path / 'dst_labels.csv')
+    solar_wind = load_data.read_feather(interim_path / 'solar_wind.feather')
+    sunspots = load_data.read_csv(raw_path / 'sunspots.csv')
+    stl_pos = load_data.read_csv(raw_path / 'satellite_positions.csv')
 
     date = pd.to_timedelta(7, unit='d')
     # date = pd.to_timedelta('111 days 04:00:00')
