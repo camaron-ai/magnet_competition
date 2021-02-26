@@ -122,7 +122,7 @@ The script will create a CSV file as below:
  |----------:|----------:|--------:|:------------------------------------------|----------:|
  |   9.54384 |   9.57683 | 9.56035 | lgbm_1200__neuronet_100__sigmoid_neuronet |         3 |
 
-this CSV file will be save in the following path:
+this CSV file will be saved in the following path:
 
 ```text
 experiments/
